@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+<defs><style>
+.bg{fill:#111923}.panel{fill:#1b2734;stroke:#64748b;stroke-width:2}.red{fill:#3a2028;stroke:#d66a70;stroke-width:3}.blue{fill:#1c3443;stroke:#69a6c8;stroke-width:3}.gold{fill:#393322;stroke:#c7a76a;stroke-width:3}.txt{font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif;fill:#f1eee7}.muted{fill:#b7c1ca;font-size:20px}.head{font-size:32px;font-weight:bold}.body{font-size:23px}.arrow{stroke:#c6d0da;stroke-width:3;fill:none;marker-end:url(#arr)}
+</style><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#c6d0da"/></marker></defs>
+<rect class="bg" width="1200" height="760"/>
+<text class="txt head" x="600" y="58" text-anchor="middle">《盲域》核心概念关系（工作模型）</text>
+<rect class="panel" x="80" y="110" width="1040" height="112" rx="20"/>
+<text class="txt head" x="600" y="155" text-anchor="middle">现实世界</text><text class="txt muted" x="600" y="190" text-anchor="middle">现代社会 · 时间在入域期间暂停 · 规则相对稳定</text>
+<path class="arrow" d="M600 222 V278"/>
+<rect class="red" x="350" y="280" width="500" height="125" rx="22"/>
+<text class="txt head" x="600" y="330" text-anchor="middle">盲域</text><text class="txt body" x="600" y="370" text-anchor="middle">无法定义的异常状态 · 无已知统一边界</text>
+<path class="arrow" d="M600 405 V455"/>
+<rect class="blue" x="80" y="460" width="310" height="120" rx="18"/>
+<text class="txt head" x="235" y="510" text-anchor="middle">域区</text><text class="txt muted" x="235" y="548" text-anchor="middle">局部异常范围 / 工作划分</text>
+<rect class="blue" x="445" y="460" width="310" height="120" rx="18"/>
+<text class="txt head" x="600" y="510" text-anchor="middle">域闻</text><text class="txt muted" x="600" y="548" text-anchor="middle">可观察、可记录的异常表现</text>
+<rect class="gold" x="810" y="460" width="310" height="120" rx="18"/>
+<text class="txt head" x="965" y="510" text-anchor="middle">熵力</text><text class="txt muted" x="965" y="548" text-anchor="middle">人类在盲域中的适应性变化</text>
+<path class="arrow" d="M390 520 H435"/><path class="arrow" d="M755 520 H800"/>
+<rect class="panel" x="350" y="630" width="500" height="85" rx="18"/>
+<text class="txt head" x="600" y="667" text-anchor="middle">遗痕</text><text class="txt muted" x="600" y="697" text-anchor="middle">死亡或重大事件留下的持续影响（可能存在）</text>
+<path class="arrow" d="M600 580 V620"/>
+</svg>

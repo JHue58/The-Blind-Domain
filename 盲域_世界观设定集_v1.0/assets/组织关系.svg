@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680">
+<defs><style>
+.bg{fill:#111923}.card{fill:#1b2734;stroke:#7b91a4;stroke-width:2}.center{fill:#3b252b;stroke:#d2787d;stroke-width:3}.txt{font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif;fill:#f2efe8}.head{font-size:31px;font-weight:bold}.body{font-size:21px;fill:#c5cdd4}.line{stroke:#a8b7c3;stroke-width:2.5;fill:none}
+</style></defs>
+<rect class="bg" width="1200" height="680"/><text class="txt head" x="600" y="55" text-anchor="middle">围绕盲域的组织与利益关系</text>
+<rect class="center" x="425" y="250" width="350" height="150" rx="24"/><text class="txt head" x="600" y="310" text-anchor="middle">盲域相关事件</text><text class="txt body" x="600" y="350" text-anchor="middle">域闻 · 域区 · 熵力 · 遗痕</text>
+<rect class="card" x="70" y="120" width="300" height="145" rx="18"/><text class="txt head" x="220" y="175" text-anchor="middle">异管局（暂名）</text><text class="txt body" x="220" y="215" text-anchor="middle">调查、研究、处置、收容</text>
+<rect class="card" x="830" y="120" width="300" height="145" rx="18"/><text class="txt head" x="980" y="175" text-anchor="middle">拾遗者</text><text class="txt body" x="980" y="215" text-anchor="middle">探索、回收、向导、情报</text>
+<rect class="card" x="70" y="455" width="300" height="145" rx="18"/><text class="txt head" x="220" y="510" text-anchor="middle">灰市</text><text class="txt body" x="220" y="550" text-anchor="middle">交易、掮客、装备与地图</text>
+<rect class="card" x="830" y="455" width="300" height="145" rx="18"/><text class="txt head" x="980" y="510" text-anchor="middle">归档会</text><text class="txt body" x="980" y="550" text-anchor="middle">理念、研究、保护或极端行动</text>
+<path class="line" d="M370 200 L425 280 M830 200 L775 280 M370 525 L425 370 M830 525 L775 370"/>
+<text class="txt body" x="600" y="640" text-anchor="middle">各势力目标不同，不预设简单的正派与反派关系。</text>
+</svg>

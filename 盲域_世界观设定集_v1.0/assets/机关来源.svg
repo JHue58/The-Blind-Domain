@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640">
+<defs><style>
+.bg{fill:#111923}.card{fill:#252c35;stroke:#c59b68;stroke-width:3}.txt{font-family:'Noto Sans CJK SC','Microsoft YaHei',sans-serif;fill:#f4f1ea}.head{font-size:32px;font-weight:bold}.body{font-size:22px;fill:#c8d0d6}.foot{font-size:20px;fill:#d9b98b}
+</style></defs>
+<rect class="bg" width="1200" height="640"/><text class="txt head" x="600" y="60" text-anchor="middle">机关的三种来源</text>
+<rect class="card" x="65" y="145" width="330" height="300" rx="22"/><text class="txt head" x="230" y="205" text-anchor="middle">自然机关</text><text class="txt body" x="230" y="260" text-anchor="middle">盲域环境自身形成</text><text class="txt body" x="230" y="305" text-anchor="middle">地砖顺序、异常门锁</text><text class="txt body" x="230" y="350" text-anchor="middle">光线与空间规则</text>
+<rect class="card" x="435" y="145" width="330" height="300" rx="22"/><text class="txt head" x="600" y="205" text-anchor="middle">域闻机关</text><text class="txt body" x="600" y="260" text-anchor="middle">域闻规则的装置化表现</text><text class="txt body" x="600" y="305" text-anchor="middle">记忆电梯、异常电话</text><text class="txt body" x="600" y="350" text-anchor="middle">需要满足条件的机器</text>
+<rect class="card" x="805" y="145" width="330" height="300" rx="22"/><text class="txt head" x="970" y="205" text-anchor="middle">人为机关</text><text class="txt body" x="970" y="260" text-anchor="middle">人类或智慧域体制造</text><text class="txt body" x="970" y="305" text-anchor="middle">机械陷阱、据点防御</text><text class="txt body" x="970" y="350" text-anchor="middle">筛选、交易、试炼</text>
+<text class="txt foot" x="600" y="520" text-anchor="middle">“机关”是功能性称呼，不是第六种域闻类型。</text><text class="txt body" x="600" y="560" text-anchor="middle">整个试炼区域可以是域区，内部机关可以来自不同来源。</text>
+</svg>
