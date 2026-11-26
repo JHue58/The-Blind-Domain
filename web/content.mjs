@@ -1,7 +1,9 @@
 import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { containsAnchor, illustratedDetail, illustrationDirectory, illustrationSource, manuscriptParagraphs } from './illustrations.mjs';
 
 const archiveDirectory = '档案室';
+const dedicatedDirectories = new Set([archiveDirectory, illustrationDirectory]);
 const archiveCategories = new Set(['term', 'character', 'zone', 'phenomenon', 'ability', 'clue', 'other']);
 const chapterStatuses = new Set(['草稿', '待审稿', '定稿']);
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -215,7 +217,8 @@ function markdownReader(root) {
       const relative = path.relative(directory, file);
       const location = relative.split(path.sep);
       if (path.isAbsolute(relative) || location.some((segment) => segment.startsWith('.') || segment === '历史稿')
-        || (segments[0] === archiveDirectory ? relative !== key : location.includes(archiveDirectory))) return null;
+        || (dedicatedDirectories.has(segments[0]) ? relative !== key
+          : location.some((segment) => dedicatedDirectories.has(segment)))) return null;
 
       const info = await stat(file);
       if (!info.isFile()) return null;
@@ -238,6 +241,7 @@ function markdownReader(root) {
 export function contentSource(projectRoot) {
   const chapterRoot = path.join(projectRoot, '正文');
   const readMarkdown = markdownReader(chapterRoot);
+  const illustrations = illustrationSource(chapterRoot, () => readMarkdown([illustrationDirectory, '索引.json']));
   let indexSource;
   let indexedChapters = new Map();
 
@@ -253,6 +257,11 @@ export function contentSource(projectRoot) {
   async function archive(id) {
     if (!slugPattern.test(id)) return null;
     return parseArchive(await readMarkdown([archiveDirectory, `${id}.md`]), id);
+  }
+
+  async function chapterBody(id, index) {
+    const chapter = index.get(id);
+    return chapter ? readChapter(await readMarkdown(chapter.segments), chapter.title) : null;
   }
 
   async function publicChapters() {
@@ -299,17 +308,33 @@ export function contentSource(projectRoot) {
     },
 
     async chapter(id) {
-      const chapter = (await chapterIndex()).get(id);
-      return chapter ? readChapter(await readMarkdown(chapter.segments), chapter.title) : null;
+      const body = await chapterBody(id, await chapterIndex());
+      if (!body) return null;
+      const paragraphs = manuscriptParagraphs(body.markdown);
+      const selected = (await illustrations.registry()).filter((drawing) => drawing.inline && drawing.chapter === id
+        && containsAnchor(paragraphs, drawing.anchor));
+      return illustratedDetail(body, await illustrations.files(selected), `chapters/${id}`);
     },
 
-    async entry(id, scope) {
+    async entry(id, scope = {}) {
       const [source, chapters] = await Promise.all([archive(id), scope?.through ? publicChapters() : []]);
       if (!source) return null;
-      const entry = visibleArchive(source, archiveVisibility(chapters, scope));
-      if (!entry) return { locked: true };
-      const { markdown, hasSpoilers } = entry;
-      return hasSpoilers ? { markdown, hasSpoilers } : { markdown };
+      const canRead = archiveVisibility(chapters, scope);
+      const entry = visibleArchive(source, canRead);
+      if (!entry) return illustratedDetail({ locked: true }, []);
+
+      const selected = (await illustrations.registry()).filter((drawing) => drawing.entries.has(id));
+      const index = selected.length ? await chapterIndex() : new Map();
+      const chapterIds = new Set(selected.map(({ chapter }) => chapter));
+      const paragraphs = new Map(await Promise.all([...chapterIds].map(async (chapter) =>
+        [chapter, manuscriptParagraphs((await chapterBody(chapter, index))?.markdown)])));
+      const valid = await illustrations.files(selected.filter(({ chapter, anchor }) => containsAnchor(paragraphs.get(chapter), anchor)));
+      const visible = valid.filter(({ chapter, entries }) => canRead(chapter) && canRead(entries.get(id)));
+      const data = { markdown: entry.markdown };
+      if (entry.hasSpoilers || visible.length < valid.length) data.hasSpoilers = true;
+      return illustratedDetail(data, visible, `entries/${id}`, scope);
     },
+
+    readIllustration: illustrations.file,
   };
 }

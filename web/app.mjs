@@ -1,4 +1,4 @@
-import { button, entryHref, installTermPreviews, link, node, renderMarkdown, termIndex } from './markup.mjs';
+import { button, entryHref, installTermPreviews, link, node, renderIllustration, renderMarkdown, termIndex } from './markup.mjs';
 import { chapterBookmark, chapterHref, chapterTitle, completedThrough, lastChapter, mountReader } from './reading.mjs';
 
 const main = document.querySelector('main');
@@ -208,7 +208,7 @@ function collectionPage(catalog, collection) {
     pageHeading(title, description, spoilerControl(catalog.hasSpoilers[collection])), tools, results);
 }
 
-function entryPage(entry, { markdown, hasSpoilers }, catalog) {
+function entryPage(entry, { markdown, hasSpoilers, illustrations = [] }, catalog) {
   const isArchive = entry.collection === 'archives';
   const category = archiveCategories.get(entry.category);
   const page = node('article', 'reference-article',
@@ -216,7 +216,7 @@ function entryPage(entry, { markdown, hasSpoilers }, catalog) {
   const from = archiveOrigin();
   const article = node('div', 'prose reference-body', markdown
     ? renderMarkdown(markdown, termIndex(catalog.terms, entry.id, from), (href) => resolveRoute(catalog, href))
-    : node('p', '', entry.summary));
+    : node('p', '', entry.summary), illustrations.map(renderIllustration));
   page.append(article);
   const action = spoilerControl(hasSpoilers);
   if (action) page.append(node('div', 'reference-actions', action));
@@ -280,7 +280,8 @@ function render({ navigation = false, revealSection = false } = {}) {
     title = data.title || requested.record.title;
     if (route.view === 'read') {
       unmountReader = mountReader(main, { chapter: requested.record, bodyTitle: data.title, chapters: catalog.chapters, closePreviews,
-        markdown: renderMarkdown(data.markdown, termIndex(catalog.terms, undefined, route.id), (href) => resolveRoute(catalog, href)),
+        markdown: renderMarkdown(data.markdown, termIndex(catalog.terms, undefined, route.id),
+          (href) => resolveRoute(catalog, href), data.illustrations),
         onChapterComplete: () => queueMicrotask(() => {
           if (route.view === 'read' && route.id === requested.record.id) refresh(true);
         }) });

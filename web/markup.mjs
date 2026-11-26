@@ -17,6 +17,22 @@ export function button(label, className) {
   return element;
 }
 
+export function renderIllustration({ url, width, height, alt, caption }) {
+  const image = node('img');
+  image.width = width;
+  image.height = height;
+  image.alt = alt;
+  image.loading = 'lazy';
+  image.decoding = 'async';
+  image.src = url;
+  const original = link(image, url, 'illustration-image');
+  original.target = '_blank';
+  original.rel = 'noopener';
+  original.title = '查看原图';
+  original.setAttribute('aria-label', `查看原图 · ${alt}`);
+  return node('figure', width < height ? 'illustration portrait' : 'illustration', original, node('figcaption', '', caption));
+}
+
 export function entryHref(collection, id = '', section = '', from = '') {
   const query = new URLSearchParams();
   if (section) query.set('section', section);
@@ -85,7 +101,7 @@ function tableCells(line) {
     .map((cell) => cell.trim().replace(/\\\|/g, '|'));
 }
 
-export function renderMarkdown(source, terms, resolveRoute) {
+export function renderMarkdown(source, terms, resolveRoute, illustrations = []) {
   const lines = source.split(/\r?\n/).map((line) => line.trim());
   const content = document.createDocumentFragment();
   const startsTable = (index) => lines[index]?.includes('|') && lines[index + 1]?.includes('-')
@@ -139,7 +155,11 @@ export function renderMarkdown(source, terms, resolveRoute) {
       const paragraph = [line];
       index++;
       while (lines[index] && !startsBlock(index)) paragraph.push(lines[index++]);
-      content.append(inline(node('p'), paragraph.join('\n'), terms, resolveRoute));
+      const text = paragraph.join('\n');
+      content.append(inline(node('p'), text, terms, resolveRoute));
+      for (const drawing of illustrations) {
+        if (drawing.anchor === text) content.append(renderIllustration(drawing));
+      }
     }
   }
   return content;

@@ -66,7 +66,7 @@ export function chapterTitle(chapter) {
 function textBlocks(article) {
   let length = 0;
   const blocks = [];
-  for (const element of article.querySelectorAll('p, h2, h3, h4, h5, h6, li, td')) {
+  for (const element of article.querySelectorAll('p, h2, h3, h4, h5, h6, li, td, figcaption')) {
     const cursor = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     const pieces = [];
     let end = 0;
@@ -241,10 +241,9 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
   }
 
   function paginate() {
-    const width = viewport.clientWidth;
+    const { width, top } = viewport.getBoundingClientRect();
     const gap = parseFloat(getComputedStyle(article).columnGap);
-    const top = viewport.getBoundingClientRect().top + window.scrollY;
-    const height = Math.max(192, window.innerHeight - top - pagination.getBoundingClientRect().height - 30);
+    const height = Math.max(192, window.innerHeight - top - window.scrollY - pagination.getBoundingClientRect().height - 30);
     article.style.setProperty('--page-width', `${width}px`);
     article.style.setProperty('--page-height', `${Math.floor(height)}px`);
     stride = width + gap;

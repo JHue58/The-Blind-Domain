@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { mkdir, mkdtemp, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -248,4 +249,87 @@ after: v1-c002
   assert.ok(full.terms.some(({ name }) => name === '旧格式别名'));
   assert.deepEqual(await (await get('/api/entries/legacy?spoilers=1')).json(), { markdown: '旧格式正文。' });
   assert.match((await (await get(personPath + '?spoilers=1')).json()).markdown, /没标章节.*还没写完/s);
+});
+
+test('插图跟随原文段落和档案解锁，撤审、改稿或图片替换时停止显示', async (context) => {
+  const { write, start } = await publicationFixture(context);
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jM1sAAAAASUVORK5CYII=', 'base64');
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const chapterFile = '正文/第一卷/第002章.md';
+  const drawingFile = '正文/插图/发布/example-v1.png';
+  const registryFile = '正文/插图/索引.json';
+  const chapterUrl = '/api/chapters/v1-c002';
+  const entryUrl = '/api/entries/place';
+  const chapter = '# 第002章 测试图\n\n前一段。\n\n两个人看见一只闸机。\n\n后一段。';
+  const registry = {
+    'example-v1': {
+      status: 'approved', file: 'example-v1.png', sha256, width: 1, height: 1, alt: '闸机的样子', caption: '闸机插图',
+      chapter: 'v1-c002', anchor: '两个人看见一只闸机。', inline: true, archives: { place: 'v1-c003' },
+    },
+    'draft-v1': {
+      status: 'draft', file: 'draft-v1.png', sha256, width: 1, height: 1, alt: '草稿的内容', caption: '草稿插图',
+      chapter: 'v1-c002', anchor: '两个人看见一只闸机。', inline: true, archives: { place: 'v1-c001' },
+    },
+  };
+  await Promise.all([
+    write('正文/第一卷/第001章.md', '# 第001章\n\n第一章内容。'),
+    write(chapterFile, chapter),
+    write('正文/第一卷/第003章.md', '# 第003章\n\n第三章内容。'),
+    write('正文/档案室/place.md', '---\ntitle: 站厅\ncategory: zone\nsummary: 站厅的记录。\nafter: opening\n---\n\n<!-- after: opening -->\n档案正文。\n<!-- /after -->'),
+    write(drawingFile, bytes),
+    write('正文/插图/发布/draft-v1.png', bytes),
+  ]);
+  const get = await start();
+  const withoutRegistry = await get(chapterUrl);
+  const manuscript = await withoutRegistry.json();
+  assert.equal(manuscript.illustrations, undefined);
+  await write(registryFile, JSON.stringify(registry));
+
+  const added = await get(chapterUrl, withoutRegistry.headers.get('etag'));
+  const body = await added.json();
+  const chapterImage = `${chapterUrl}/illustrations/example-v1?v=${sha256}`;
+  const archiveImage = `${entryUrl}/illustrations/example-v1?v=${sha256}`;
+  assert.equal(body.markdown, manuscript.markdown);
+  assert.deepEqual(body.illustrations, [{ url: chapterImage, width: 1, height: 1, alt: '闸机的样子',
+    caption: '闸机插图', anchor: '两个人看见一只闸机。' }]);
+  assert.equal((await get(chapterUrl, added.headers.get('etag'))).status, 304);
+  const image = await get(chapterImage);
+  assert.equal(image.headers.get('content-type'), 'image/png');
+  assert.deepEqual(Buffer.from(await image.arrayBuffer()), bytes);
+  assert.equal((await get(chapterImage, image.headers.get('etag'))).status, 304);
+
+  for (const search of ['', '?through=v1-c001', '?through=v1-c002']) {
+    assert.deepEqual(await (await get(entryUrl + search)).json(), { markdown: '档案正文。', hasSpoilers: true });
+    const scope = search.replace('?', '&');
+    assert.equal((await get(archiveImage + scope)).status, 404);
+  }
+  for (const scope of ['through=v1-c003', 'spoilers=1']) {
+    const entry = await (await get(`${entryUrl}?${scope}`)).json();
+    assert.deepEqual(entry.illustrations, [{ url: `${archiveImage}&${scope}`, width: 1, height: 1,
+      alt: '闸机的样子', caption: '闸机插图' }]);
+    assert.equal((await get(entry.illustrations[0].url)).status, 200);
+    assert.equal(entry.hasSpoilers, undefined);
+  }
+  assert.doesNotMatch(await (await get('/api/catalog?spoilers=1')).text(), /闸机插图|example-v1/);
+  for (const route of [`${chapterUrl}/illustrations/draft-v1?v=${sha256}`, `${entryUrl}/illustrations/draft-v1?v=${sha256}&spoilers=1`,
+    `/api/chapters/v1-c001/illustrations/example-v1?v=${sha256}`, `/${encodeURI(drawingFile)}`, '/assets/example-v1.png']) {
+    assert.equal((await get(route)).status, 404, route);
+  }
+
+  for (const changedChapter of [chapter.replace('一只闸机', '一扇门'), `${chapter}\n\n两个人看见一只闸机。`]) {
+    await write(chapterFile, changedChapter);
+    assert.equal((await (await get(chapterUrl)).json()).illustrations, undefined);
+    assert.equal((await get(`${archiveImage}&spoilers=1`)).status, 404);
+  }
+  await write(chapterFile, chapter);
+  await write(drawingFile, Buffer.concat([bytes, Buffer.from([0])]));
+  assert.deepEqual(await (await get(chapterUrl)).json(), manuscript);
+  assert.equal((await get(chapterImage)).status, 404);
+  await write(drawingFile, bytes);
+  assert.equal((await get(chapterImage)).status, 200);
+  for (const state of ['{', JSON.stringify({ 'example-v1': { ...registry['example-v1'], status: 'withdrawn' } })]) {
+    await write(registryFile, state);
+    assert.deepEqual(await (await get(chapterUrl)).json(), manuscript);
+    assert.equal((await get(chapterImage)).status, 404);
+  }
 });

@@ -52,10 +52,15 @@ export function createReaderServer(projectRoot = path.dirname(here)) {
       }
       const scope = { through: url.searchParams.get('through'), spoilers: url.searchParams.get('spoilers') === '1' };
       if (route === '/api/catalog') return json(200, await content.catalog(scope));
-      const match = route.match(/^\/api\/(chapters|entries)\/([a-z0-9-]+)$/);
+      const match = route.match(/^\/api\/(chapters|entries)\/([a-z0-9-]+)(?:\/illustrations\/([a-z0-9-]+))?$/);
       if (match) {
         const record = match[1] === 'chapters' ? await content.chapter(match[2]) : await content.entry(match[2], scope);
-        if (record) return json(200, record);
+        if (record && !match[3]) return json(200, record.data);
+        const drawing = record?.files.get(match[3]);
+        if (drawing && url.searchParams.get('v') === drawing.sha256) {
+          const picture = await content.readIllustration(drawing);
+          if (picture) return respond(request, response, 200, picture.bytes, picture.type);
+        }
       }
       return json(404, { error: '此内容当前不可阅读。' });
     } catch (error) {

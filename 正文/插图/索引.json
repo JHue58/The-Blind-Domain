@@ -1,0 +1,52 @@
+{
+  "chen-ning-v1": {
+    "status": "approved",
+    "file": "chen-ning-v1.jpg",
+    "sha256": "48327102aa93ee6ee32ffc120cb34bde0ec7b5db5425bac82c2c49f02aed32d2",
+    "width": 1086,
+    "height": 1448,
+    "alt": "陈宁的人物肖像，短黑发，穿煤灰色薄外套。",
+    "caption": "人物绘设 · 陈宁",
+    "chapter": "v1-c001",
+    "anchor": "他二十四岁，大学毕业后就进了这家小公司，替附近的餐馆写点餐和取餐的程序，到今年夏天满了两年。发照片的店长姓何，每次有事都发语音。陈宁把声音调小了才敢点开，老何讲起话来，声量足以盖过他店里抽油烟机的动静。",
+    "archives": { "chen-ning": "v1-c001" }
+  },
+  "zhou-tang-v1": {
+    "status": "approved",
+    "file": "zhou-tang-v1.jpg",
+    "sha256": "d21307cb072caa0c29890677fc35d209052ddab723bbf7ce7964ed7226edb159",
+    "width": 1086,
+    "height": 1448,
+    "alt": "周棠的人物肖像，黑发扎低马尾，穿深苔绿色薄外套。",
+    "caption": "人物绘设 · 周棠",
+    "chapter": "v1-c001",
+    "anchor": "「他把柜子都擦完了。」周棠从隔板另一边探过头来。她手里捏着一串钥匙，已经把外套穿好了。「屏上还有一份，店长怕人家一会儿来取。」",
+    "archives": { "zhou-tang": "v1-c001" }
+  },
+  "v1-c001-c-entrance-v1": {
+    "status": "approved",
+    "file": "v1-c001-c-entrance-v1.jpg",
+    "sha256": "0945f2d0fd6f256bf2063ce63426332ca44b19769a3f9c46d782b4c7ceb55bc1",
+    "width": 1536,
+    "height": 1024,
+    "alt": "夜雨中的 C 口楼梯，卷帘收在门洞上方，摊灯照亮一角红雨布。",
+    "caption": "第001章插图 · C 口梯底",
+    "chapter": "v1-c001",
+    "anchor": "陈宁回过头。卷帘门收在顶上。从他站的地方望出去，摊主那盏灯还在，照着雨里一小片发红的塑料布。",
+    "inline": true,
+    "archives": { "huai-du-station-broadcast": "v1-c001" }
+  },
+  "v1-c002-fare-gates-v1": {
+    "status": "approved",
+    "file": "v1-c002-fare-gates-v1.jpg",
+    "sha256": "29f726d7f771c4adc73d9fb5f166f18eb5266190b8d6d6e9e768995f1f58ba7e",
+    "width": 1536,
+    "height": 1024,
+    "alt": "陈宁拎着一只纸袋，周棠双手托住另一只。两人身后的闸机亮着红叉。",
+    "caption": "第002章插图 · 闸机前",
+    "chapter": "v1-c002",
+    "anchor": "周棠接过去，两只手托着。站厅里的广播又响起来，和楼梯底下听见的是同一句。",
+    "inline": true,
+    "archives": { "chen-ning": "v1-c002", "zhou-tang": "v1-c002" }
+  }
+}
