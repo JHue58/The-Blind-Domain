@@ -2,6 +2,7 @@
 title: 现实中的异常
 category: term
 summary: 公众知道异常事件存在。在现实中使用熵力可能引发现实污染。
+after: spoiler
 terms:
   - 现实污染 | 在现实中使用熵力后可能出现的异常干扰。 | 现实污染
 ---

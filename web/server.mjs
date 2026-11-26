@@ -50,10 +50,11 @@ export function createReaderServer(projectRoot = path.dirname(here)) {
       if (file) {
         return respond(request, response, 200, await readFile(path.join(here, file[0])), file[1]);
       }
-      if (route === '/api/catalog') return json(200, await content.catalog());
+      const scope = { through: url.searchParams.get('through'), spoilers: url.searchParams.get('spoilers') === '1' };
+      if (route === '/api/catalog') return json(200, await content.catalog(scope));
       const match = route.match(/^\/api\/(chapters|entries)\/([a-z0-9-]+)$/);
       if (match) {
-        const record = match[1] === 'chapters' ? await content.chapter(match[2]) : await content.entry(match[2]);
+        const record = match[1] === 'chapters' ? await content.chapter(match[2]) : await content.entry(match[2], scope);
         if (record) return json(200, record);
       }
       return json(404, { error: '此内容当前不可阅读。' });

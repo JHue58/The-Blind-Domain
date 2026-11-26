@@ -1,7 +1,8 @@
 import { button, entryHref, installTermPreviews, link, node, renderMarkdown, termIndex } from './markup.mjs';
-import { chapterBookmark, chapterHref, chapterTitle, lastChapter, mountReader } from './reading.mjs';
+import { chapterBookmark, chapterHref, chapterTitle, completedThrough, lastChapter, mountReader } from './reading.mjs';
 
 const main = document.querySelector('main');
+const spoilerDialog = document.querySelector('#spoiler-dialog');
 const archiveCategories = new Map([
   ['all', '全部'], ['term', '术语'], ['character', '人物'], ['zone', '域区'],
   ['phenomenon', '域闻'], ['ability', '能力'], ['clue', '线索'], ['other', '其他'],
@@ -13,6 +14,7 @@ let catalogCache;
 let detailCache;
 let activeSync;
 let unmountReader;
+let showSpoilers = false;
 let termsByName = new Map();
 const closePreviews = installTermPreviews(main, document.querySelector('#term-popover'), (term) => termsByName.get(term));
 history.scrollRestoration = 'manual';
@@ -22,15 +24,33 @@ function readRoute(fragment = location.hash) {
   const [path, search] = fragment.replace(/^#\//, '').split('?');
   const match = path.match(/^(read|settings|archives)(?:\/([a-z0-9-]+))?$/);
   if (!match) return { view: 'missing' };
-  return { view: match[1], id: match[2], section: new URLSearchParams(search).get('section') };
+  const query = new URLSearchParams(search);
+  return { view: match[1], id: match[2], section: query.get('section'), from: query.get('from') };
 }
 
-function allowsRoute(href) {
-  if (!href.startsWith('#/')) return false;
+function isReference({ view }) {
+  return view === 'settings' || view === 'archives';
+}
+
+function archiveOrigin() {
+  return route.view === 'read' ? route.id : route.from;
+}
+
+function archiveSearch(chapters) {
+  if (showSpoilers && isReference(route)) return '?spoilers=1';
+  const through = completedThrough(chapters, archiveOrigin());
+  return through ? `?through=${through}` : '';
+}
+
+function resolveRoute(catalog, href) {
+  if (!href.startsWith('#/')) return null;
   const target = readRoute(href);
-  if (target.view === 'missing' || !target.id) return target.view !== 'missing';
-  const records = catalogCache.data[target.view === 'read' ? 'chapters' : target.view];
-  return records.some((record) => record.id === target.id);
+  if (target.view === 'missing') return null;
+  if (target.id) {
+    const records = catalog[target.view === 'read' ? 'chapters' : target.view];
+    if (!records.some((record) => record.id === target.id)) return null;
+  }
+  return isReference(target) ? entryHref(target.view, target.id, target.section, archiveOrigin()) : href;
 }
 
 function icon(shape) {
@@ -45,7 +65,7 @@ function entryCard(entry) {
   return link([
     tag ? node('span', 'card-category', entry.code ? `${tag} / ${entry.code}` : tag) : null, heading,
     node('p', '', entry.summary),
-  ], entryHref(entry.collection, entry.id), 'entry-card');
+  ], entryHref(entry.collection, entry.id, '', archiveOrigin()), 'entry-card');
 }
 
 function emptyState(title, description, action, shape = 'book') {
@@ -77,9 +97,9 @@ function home(catalog) {
       node('div', '', node('h2', '', '档案室'), node('p', '', catalog.archives.length ? `${catalog.archives.length} 份档案可查阅` : '暂无可阅档案')),
       node('span', 'gateway-action', '查阅档案')], '#/archives', 'gateway'));
 
-  const featured = node('section', 'featured', node('div', 'section-heading', node('h2', '', '世界设定'),
+  const featured = catalog.settings.length ? node('section', 'featured', node('div', 'section-heading', node('h2', '', '世界设定'),
     link('全部设定', '#/settings', 'text-link')),
-  node('div', 'card-grid', catalog.settings.slice(0, 3).map(entryCard)));
+  node('div', 'card-grid', catalog.settings.slice(0, 3).map(entryCard))) : null;
   return node('div', 'frame home-view', hero, gateways, featured);
 }
 
@@ -112,6 +132,22 @@ function chapterDirectory(chapters) {
       ], chapterHref(chapter), 'chapter-row'));
     }))));
   return node('div', 'frame page-view chapter-directory', title, groups);
+}
+
+function setSpoilers(visible) {
+  showSpoilers = visible;
+  render({ navigation: true });
+  refresh(true);
+}
+
+function spoilerControl(hasSpoilers) {
+  if (!showSpoilers && !hasSpoilers) return null;
+  const action = button(showSpoilers ? '恢复按进度查看' : '查看后续内容', 'button quiet');
+  action.addEventListener('click', () => {
+    if (showSpoilers) setSpoilers(false);
+    else spoilerDialog.showModal();
+  });
+  return action;
 }
 
 function collectionPage(catalog, collection) {
@@ -157,7 +193,8 @@ function collectionPage(catalog, collection) {
       const unfilled = entries.length === 0;
       results.replaceChildren(emptyState(
         unfilled ? (isArchive ? '暂无可阅档案' : '暂无可阅设定') : '未找到匹配条目',
-        unfilled ? '新增条目会自动出现在目录中。' : '试试其他名称、编号或类别。',
+        unfilled ? (catalog.hasSpoilers[collection] ? '条目随阅读进度开放。' : '新增条目会自动出现在目录中。')
+          : '试试其他名称、编号或类别。',
         null, isArchive ? 'archive' : 'book'));
     }
   }
@@ -167,27 +204,33 @@ function collectionPage(catalog, collection) {
     updateResults();
   });
   updateResults();
-  return node('div', 'frame page-view catalog-view', pageHeading(title, description), tools, results);
+  return node('div', 'frame page-view catalog-view',
+    pageHeading(title, description, spoilerControl(catalog.hasSpoilers[collection])), tools, results);
 }
 
-function entryPage(entry, source, catalog) {
+function entryPage(entry, { markdown, hasSpoilers }, catalog) {
   const isArchive = entry.collection === 'archives';
   const category = archiveCategories.get(entry.category);
   const page = node('article', 'reference-article',
     node('header', 'reference-heading', node('p', 'eyebrow', entry.code ? `${category} / ${entry.code}` : category), node('h1', '', entry.title)));
-  const article = node('div', 'prose reference-body', renderMarkdown(source, termIndex(catalog.terms, entry.id), allowsRoute));
+  const from = archiveOrigin();
+  const article = node('div', 'prose reference-body', markdown
+    ? renderMarkdown(markdown, termIndex(catalog.terms, entry.id, from), (href) => resolveRoute(catalog, href))
+    : node('p', '', entry.summary));
   page.append(article);
+  const action = spoilerControl(hasSpoilers);
+  if (action) page.append(node('div', 'reference-actions', action));
 
   const headings = [...article.querySelectorAll('[data-section]')];
   const contents = headings.length ? node('nav', 'reference-index', node('h2', '', '本页内容'),
-    headings.map((heading) => link(heading.dataset.section, entryHref(entry.collection, entry.id, heading.dataset.section)))) : null;
+    headings.map((heading) => link(heading.dataset.section, entryHref(entry.collection, entry.id, heading.dataset.section, from)))) : null;
   const neighbours = catalog[entry.collection].filter((other) => other.id !== entry.id).slice(0, 6);
   const related = neighbours.length ? node('nav', 'reference-index', node('h2', '', isArchive ? '其他档案' : '其他设定'),
-    neighbours.map((other) => link(other.title, entryHref(other.collection, other.id)))) : null;
+    neighbours.map((other) => link(other.title, entryHref(other.collection, other.id, '', from)))) : null;
   contents?.setAttribute('aria-label', '本页内容');
   related?.setAttribute('aria-label', isArchive ? '其他档案' : '其他设定');
   return node('div', 'frame page-view reference-view',
-    link(isArchive ? '返回档案室' : '返回设定集', `#/${entry.collection}`, 'text-link back-link'),
+    link(isArchive ? '返回档案室' : '返回设定集', entryHref(entry.collection, '', '', from), 'text-link back-link'),
     node('div', 'reference-layout', page, contents || related ? node('aside', 'reference-aside', contents, related) : null));
 }
 
@@ -195,11 +238,12 @@ function statusPage(title, description, action) {
   return node('div', 'frame page-view', pageHeading(title, description, action));
 }
 
-function requestedDetail(catalog, target) {
-  if (!target.id || !['read', 'settings', 'archives'].includes(target.view)) return null;
+function requestedDetail(catalog, target, search) {
+  if (!target.id) return null;
   const records = target.view === 'read' ? catalog.chapters : catalog[target.view];
   const record = records.find((item) => item.id === target.id);
-  return record ? { record, url: `/api/${target.view === 'read' ? 'chapters' : 'entries'}/${record.id}` } : null;
+  if (isReference(target)) return { record, url: `/api/entries/${target.id}${search}` };
+  return record ? { record, url: `/api/chapters/${record.id}` } : null;
 }
 
 function jumpToSection() {
@@ -208,8 +252,6 @@ function jumpToSection() {
 }
 
 function render({ navigation = false, revealSection = false } = {}) {
-  const catalog = catalogCache?.data;
-  if (!catalog) return;
   const scrollPosition = window.scrollY;
   const searchInFocus = main.contains(document.activeElement) && document.activeElement.dataset.collectionSearch;
   const searchSelection = searchInFocus ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
@@ -221,23 +263,33 @@ function render({ navigation = false, revealSection = false } = {}) {
     else navLink.removeAttribute('aria-current');
   }
 
-  const requested = requestedDetail(catalog, route);
+  const search = archiveSearch(catalogCache?.data.chapters ?? []);
+  const catalog = catalogCache?.url === `/api/catalog${search}` ? catalogCache.data : null;
+  termsByName = new Map(catalog?.terms.map((term) => [term.name, term]));
+  const requested = catalog && requestedDetail(catalog, route, search);
   const data = requested?.url === detailCache?.url ? detailCache?.data : undefined;
   let view;
   let title;
-  if (route.view === 'home') {
+  if (!catalog) {
+    view = statusPage('正在读取…');
+  } else if (route.view === 'home') {
     view = home(catalog);
-  } else if (route.id && requested && data) {
+  } else if (data?.locked) {
+    view = statusPage('这条记录涉及后续内容', '条目随阅读进度开放。', spoilerControl(true));
+  } else if (requested?.record && data) {
     title = data.title || requested.record.title;
     if (route.view === 'read') {
       unmountReader = mountReader(main, { chapter: requested.record, bodyTitle: data.title, chapters: catalog.chapters, closePreviews,
-        markdown: renderMarkdown(data.markdown, termIndex(catalog.terms), allowsRoute) });
+        markdown: renderMarkdown(data.markdown, termIndex(catalog.terms, undefined, route.id), (href) => resolveRoute(catalog, href)),
+        onChapterComplete: () => queueMicrotask(() => {
+          if (route.view === 'read' && route.id === requested.record.id) refresh(true);
+        }) });
     } else {
-      view = entryPage(requested.record, data.markdown, catalog);
+      view = entryPage(requested.record, data, catalog);
     }
   } else if (route.id || route.view === 'missing') {
     const loading = requested && data === undefined;
-    const target = ['read', 'settings', 'archives'].includes(route.view) ? `#/${route.view}` : '#/';
+    const target = isReference(route) ? entryHref(route.view, '', '', route.from) : route.view === 'read' ? '#/read' : '#/';
     view = loading ? statusPage('正在读取…')
       : statusPage('此内容当前不可阅读', '可返回目录查看当前可读内容。', link('返回目录', target, 'button quiet'));
   } else if (route.view === 'read') {
@@ -263,6 +315,7 @@ function render({ navigation = false, revealSection = false } = {}) {
 }
 
 async function getUpdate(url, cached, signal) {
+  if (cached?.url !== url) cached = undefined;
   const headers = cached?.tag ? { 'If-None-Match': cached.tag } : {};
   const response = await fetch(url, { signal, headers, cache: 'no-store' });
   if (response.status === 304) return cached;
@@ -278,9 +331,15 @@ async function refresh(navigation = false) {
   activeSync = task;
   const { signal } = task;
   try {
-    const nextCatalog = await getUpdate('/api/catalog', catalogCache, signal);
+    const search = archiveSearch(catalogCache?.data.chapters ?? []);
+    let nextCatalog = await getUpdate(`/api/catalog${search}`, catalogCache, signal);
+    if (signal.aborted) return;
     if (!nextCatalog.data) throw new Error('找不到目录');
-    const requested = requestedDetail(nextCatalog.data, route);
+    const currentSearch = archiveSearch(nextCatalog.data.chapters);
+    if (currentSearch !== search) nextCatalog = await getUpdate(`/api/catalog${currentSearch}`, catalogCache, signal);
+    if (signal.aborted) return;
+    if (!nextCatalog.data) throw new Error('找不到目录');
+    const requested = requestedDetail(nextCatalog.data, route, currentSearch);
     const previousDetail = requested?.url === detailCache?.url ? detailCache : undefined;
     const nextDetail = requested ? await getUpdate(requested.url, previousDetail, signal) : undefined;
     if (signal.aborted) return;
@@ -288,13 +347,12 @@ async function refresh(navigation = false) {
     const changed = catalogCache !== nextCatalog || detailCache !== nextDetail;
     catalogCache = nextCatalog;
     detailCache = nextDetail;
-    if (changed) {
-      termsByName = new Map(catalogCache.data.terms.map((term) => [term.name, term]));
-      render({ revealSection: !previousDetail?.data && Boolean(nextDetail?.data) });
-    }
+    if (changed) render({ revealSection: !previousDetail?.data && Boolean(nextDetail?.data) });
   } catch {
     if (signal.aborted) return;
-    if (!catalogCache) main.replaceChildren(statusPage('暂时无法读取内容', '站点会自动重试。'));
+    if (!catalogCache || catalogCache.url !== `/api/catalog${archiveSearch(catalogCache.data.chapters)}`) {
+      main.replaceChildren(statusPage('暂时无法读取内容', '站点会自动重试。'));
+    }
   } finally {
     if (activeSync === task) activeSync = undefined;
   }
@@ -305,10 +363,19 @@ document.querySelector('.skip-link').addEventListener('click', (event) => {
   main.focus();
 });
 
+spoilerDialog.querySelector('[data-cancel]').addEventListener('click', () => spoilerDialog.close());
+spoilerDialog.querySelector('[data-confirm]').addEventListener('click', () => {
+  spoilerDialog.close();
+  setSpoilers(true);
+});
+
 window.addEventListener('hashchange', () => {
   const previous = route;
   route = readRoute();
-  if (previous.view === route.view && previous.id === route.id && previous.section !== route.section && route.section) {
+  if (spoilerDialog.open) spoilerDialog.close();
+  if (!isReference(previous) || !isReference(route) || previous.from !== route.from) showSpoilers = false;
+  if (previous.view === route.view && previous.id === route.id && previous.from === route.from
+    && previous.section !== route.section && route.section) {
     jumpToSection();
     return;
   }

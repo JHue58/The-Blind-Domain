@@ -6,21 +6,30 @@ const emptyBookmark = { block: 0, offset: 0, excerpt: '', progress: 0 };
 function loadReadingState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
+    const bookmarks = saved?.bookmarks && typeof saved.bookmarks === 'object' ? saved.bookmarks : {};
+    const completed = Array.isArray(saved?.completed) ? saved.completed
+      : Object.keys(bookmarks).filter((id) => bookmarks[id]?.progress === 1);
     return {
       mode: saved?.mode === 'pages' ? 'pages' : 'scroll',
       last: typeof saved?.last === 'string' ? saved.last : null,
-      bookmarks: saved?.bookmarks && typeof saved.bookmarks === 'object' ? saved.bookmarks : {},
+      bookmarks,
+      completed: new Set(completed),
     };
   } catch {
-    return { mode: 'scroll', last: null, bookmarks: {} };
+    return { mode: 'scroll', last: null, bookmarks: {}, completed: new Set() };
   }
 }
 
 const reading = loadReadingState();
 
+function syncCompleted() {
+  for (const id of loadReadingState().completed) reading.completed.add(id);
+}
+
 function saveReadingState() {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(reading));
+    syncCompleted();
+    localStorage.setItem(storageKey, JSON.stringify({ ...reading, completed: [...reading.completed] }));
   } catch {
     // Reading continues with the current position when browser storage is unavailable.
   }
@@ -32,6 +41,18 @@ export function lastChapter(chapters) {
 
 export function chapterBookmark(chapter) {
   return reading.bookmarks[chapter.id];
+}
+
+export function completedThrough(chapters, ceiling) {
+  syncCompleted();
+  if (ceiling && !chapters.some(({ id }) => id === ceiling)) return null;
+  let through = null;
+  for (const { id } of chapters) {
+    if (!reading.completed.has(id)) break;
+    through = id;
+    if (id === ceiling) break;
+  }
+  return through;
 }
 
 export function chapterHref(chapter) {
@@ -77,7 +98,7 @@ function clamp(value, lowest, highest) {
   return Math.min(highest, Math.max(lowest, value));
 }
 
-export function mountReader(main, { chapter, markdown, bodyTitle, chapters, closePreviews }) {
+export function mountReader(main, { chapter, markdown, bodyTitle, chapters, closePreviews, onChapterComplete }) {
   const title = bodyTitle || chapter.title;
   const scroll = button('滚动', 'mode-button');
   const pages = button('翻页', 'mode-button');
@@ -102,7 +123,9 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
   pageLabel.setAttribute('aria-live', 'polite');
   const pagination = node('div', 'page-controls', previousPage, pageLabel, nextPage);
 
-  const book = node('div', 'reader-book', heading, viewport, pagination);
+  const finish = button('标记本章已读', 'button quiet chapter-finish');
+  finish.hidden = true;
+  const book = node('div', 'reader-book', heading, viewport, pagination, finish);
   const index = chapters.findIndex((item) => item.id === chapter.id);
   const previous = chapters[index - 1];
   const next = chapters[index + 1];
@@ -163,10 +186,20 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
     return measure(blocks[matched], Number.isInteger(place.offset) ? place.offset : 0);
   }
 
-  function record() {
+  function updateFinish() {
+    const canFinish = mode === 'pages' ? page === pageCount - 1
+      : window.scrollY === 0 && article.getBoundingClientRect().bottom <= window.innerHeight;
+    finish.hidden = reading.completed.has(chapter.id) || !canFinish;
+  }
+
+  function record(reachedEnd = false) {
     reading.last = chapter.id;
     reading.bookmarks[chapter.id] = place;
+    const completedNow = reachedEnd && !reading.completed.has(chapter.id);
+    if (completedNow) reading.completed.add(chapter.id);
     saveReadingState();
+    updateFinish();
+    if (completedNow) onChapterComplete();
   }
 
   function showProgress(value) {
@@ -182,9 +215,10 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
     const readingLine = toolbar.getBoundingClientRect().bottom + 8;
     place = findPlace((rect) => rect.bottom > readingLine);
     const endVisible = article.getBoundingClientRect().bottom <= window.innerHeight;
-    if (endVisible && window.scrollY > 0) place.progress = 1;
+    const reachedEnd = endVisible && window.scrollY > 0;
+    if (reachedEnd) place.progress = 1;
     showProgress(place.progress);
-    record();
+    record(reachedEnd);
   }
 
   function pageForRect(rect) {
@@ -217,6 +251,7 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
     pageCount = Math.max(1, Math.ceil((article.scrollWidth - width - 1) / stride) + 1);
     const rect = rectForPlace();
     showPage(rect ? pageForRect(rect) : 0);
+    updateFinish();
   }
 
   function turn(direction) {
@@ -228,7 +263,7 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
     const pageTop = viewport.getBoundingClientRect().top;
     const toolbarBottom = toolbar.getBoundingClientRect().bottom;
     if (pageTop < toolbarBottom + 8) window.scrollBy(0, pageTop - toolbarBottom - 8);
-    record();
+    record(page === pageCount - 1);
   }
 
   function restoreMode() {
@@ -264,6 +299,12 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
 
   scroll.addEventListener('click', () => switchMode('scroll'));
   pages.addEventListener('click', () => switchMode('pages'));
+  finish.addEventListener('click', () => {
+    place = findPlace(() => false);
+    place.progress = 1;
+    showProgress(1);
+    record(true);
+  });
   previousPage.addEventListener('click', () => turn(-1));
   nextPage.addEventListener('click', () => turn(1));
   document.addEventListener('keydown', (event) => {
@@ -275,9 +316,8 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
     }
   }, { signal });
   window.addEventListener('resize', () => {
-    if (mode !== 'pages') return;
     cancelAnimationFrame(resizeFrame);
-    resizeFrame = requestAnimationFrame(paginate);
+    resizeFrame = requestAnimationFrame(mode === 'pages' ? paginate : updateFinish);
   }, { signal });
   restoreMode();
   window.addEventListener('scroll', () => {

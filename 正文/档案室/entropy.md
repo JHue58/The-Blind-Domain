@@ -2,6 +2,7 @@
 title: 熵力
 category: term
 summary: 人在盲域中为生存产生的适应性变化。
+after: spoiler
 terms:
   - 觉醒 | 一个人首次表现出熵力的过程。
 ---

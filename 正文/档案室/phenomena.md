@@ -2,6 +2,7 @@
 title: 域闻
 category: term
 summary: 盲域中可观察、可记录的异常现象。
+after: spoiler
 terms:
   - 空间型 | 主要表现为空间关系异常的域闻。 | 五类表现
   - 实体型 | 具有实体特征或能自主活动的域闻。 | 五类表现

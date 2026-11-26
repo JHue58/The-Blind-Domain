@@ -17,11 +17,15 @@ export function button(label, className) {
   return element;
 }
 
-export function entryHref(collection, id, section = '') {
-  return `#/${collection}/${id}${section ? `?section=${encodeURIComponent(section)}` : ''}`;
+export function entryHref(collection, id = '', section = '', from = '') {
+  const query = new URLSearchParams();
+  if (section) query.set('section', section);
+  if (from) query.set('from', from);
+  const search = query.toString();
+  return `#/${collection}${id ? `/${id}` : ''}${search ? `?${search}` : ''}`;
 }
 
-export function termIndex(terms, currentEntry) {
+export function termIndex(terms, currentEntry, from) {
   const published = terms.filter((term) => !currentEntry || currentEntry !== term.entry);
   const byName = new Map(published.map((term) => [term.name, term]));
   const names = [...byName.keys()].sort((first, second) => second.length - first.length);
@@ -31,7 +35,7 @@ export function termIndex(terms, currentEntry) {
     const right = /[a-z0-9]$/i.test(name) ? '(?![a-zA-Z0-9])' : '';
     return `${left}${escaped}${right}`;
   }).join('|'), 'gu') : null;
-  return { byName, pattern };
+  return { byName, pattern, from };
 }
 
 function appendTerms(parent, text, terms) {
@@ -39,7 +43,7 @@ function appendTerms(parent, text, terms) {
   for (const match of terms.pattern ? text.matchAll(terms.pattern) : []) {
     const term = terms.byName.get(match[0]);
     const trigger = term.entry
-      ? link(term.name, entryHref(term.collection, term.entry, term.section), 'term')
+      ? link(term.name, entryHref(term.collection, term.entry, term.section, terms.from), 'term')
       : button(term.name, 'term');
     trigger.dataset.term = term.name;
     parent.append(text.slice(offset, match.index), trigger);
@@ -48,16 +52,17 @@ function appendTerms(parent, text, terms) {
   if (offset < text.length) parent.append(text.slice(offset));
 }
 
-function inline(parent, text, terms, allowRoute) {
+function inline(parent, text, terms, resolveRoute) {
   const pattern = /(`([^`\n]+)`|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\n]+)\*|(!?)\[([^\]\n]+)\]\(([^)\n]+)\))/g;
   let offset = 0;
   for (const match of text.matchAll(pattern)) {
     appendTerms(parent, text.slice(offset, match.index), terms);
     const [, , code, strong, strongAlt, emphasis, image, label, href] = match;
+    const destination = label && !image ? resolveRoute(href) : null;
     if (code) {
       parent.append(node('code', '', code));
-    } else if (label && !image && allowRoute(href)) {
-      parent.append(link(label, href));
+    } else if (destination) {
+      parent.append(link(label, destination));
     } else if (label) {
       appendTerms(parent, label, terms);
     } else {
@@ -80,7 +85,7 @@ function tableCells(line) {
     .map((cell) => cell.trim().replace(/\\\|/g, '|'));
 }
 
-export function renderMarkdown(source, terms, allowRoute) {
+export function renderMarkdown(source, terms, resolveRoute) {
   const lines = source.split(/\r?\n/).map((line) => line.trim());
   const content = document.createDocumentFragment();
   const startsTable = (index) => lines[index]?.includes('|') && lines[index + 1]?.includes('-')
@@ -96,7 +101,7 @@ export function renderMarkdown(source, terms, allowRoute) {
       index++;
     } else if (heading) {
       const level = Math.max(2, line.indexOf(' '));
-      const element = inline(node(`h${level}`), heading[1], { pattern: null }, allowRoute);
+      const element = inline(node(`h${level}`), heading[1], { pattern: null }, resolveRoute);
       element.dataset.section = element.textContent;
       content.append(element);
       index++;
@@ -106,19 +111,19 @@ export function renderMarkdown(source, terms, allowRoute) {
     } else if (line.startsWith('>')) {
       const quote = [];
       while (lines[index]?.startsWith('>')) quote.push(lines[index++].replace(/^>\s?/, ''));
-      content.append(node('blockquote', '', renderMarkdown(quote.join('\n'), terms, allowRoute)));
+      content.append(node('blockquote', '', renderMarkdown(quote.join('\n'), terms, resolveRoute)));
     } else if (item) {
       const ordered = Boolean(item[1]);
       const list = node(ordered ? 'ol' : 'ul');
       if (ordered) list.start = Number(item[1]);
       for (let next; (next = lines[index]?.match(listPattern)) && Boolean(next[1]) === ordered; index++) {
-        list.append(inline(node('li'), next[2], terms, allowRoute));
+        list.append(inline(node('li'), next[2], terms, resolveRoute));
       }
       content.append(list);
     } else if (startsTable(index)) {
       const head = node('tr');
       for (const value of tableCells(line)) {
-        const cell = inline(node('th'), value, terms, allowRoute);
+        const cell = inline(node('th'), value, terms, resolveRoute);
         cell.scope = 'col';
         head.append(cell);
       }
@@ -126,7 +131,7 @@ export function renderMarkdown(source, terms, allowRoute) {
       index += 2;
       while (lines[index]?.includes('|')) {
         const row = node('tr');
-        for (const value of tableCells(lines[index++])) row.append(inline(node('td'), value, terms, allowRoute));
+        for (const value of tableCells(lines[index++])) row.append(inline(node('td'), value, terms, resolveRoute));
         rows.append(row);
       }
       content.append(node('div', 'table-wrap', node('table', '', node('thead', '', head), rows)));
@@ -134,7 +139,7 @@ export function renderMarkdown(source, terms, allowRoute) {
       const paragraph = [line];
       index++;
       while (lines[index] && !startsBlock(index)) paragraph.push(lines[index++]);
-      content.append(inline(node('p'), paragraph.join('\n'), terms, allowRoute));
+      content.append(inline(node('p'), paragraph.join('\n'), terms, resolveRoute));
     }
   }
   return content;
@@ -165,7 +170,7 @@ export function installTermPreviews(main, panel, lookup) {
     panel.replaceChildren(node('strong', '', term.name), definition);
     if (term.entry) {
       panel.append(link(term.collection === 'archives' ? '查看档案' : '查看设定',
-        entryHref(term.collection, term.entry, term.section), 'text-link'));
+        trigger.getAttribute('href'), 'text-link'));
     }
     panel.hidden = false;
     const target = trigger.getBoundingClientRect();

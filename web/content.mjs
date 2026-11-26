@@ -119,20 +119,52 @@ function readChapter(raw, fallbackTitle) {
   return markdown ? { title: title || fallbackTitle, markdown } : null;
 }
 
+function archiveBlocks(markdown) {
+  const blocks = [];
+  let lines = [];
+  let after;
+  function save(unlock) {
+    const body = lines.join('\n').trim();
+    if (body) blocks.push({ after: unlock, markdown: body });
+    lines = [];
+  }
+  for (const line of markdown.split(/\r?\n/)) {
+    const opening = line.trim().match(/^<!--\s*after:\s*(\S+)\s*-->$/);
+    if (opening) {
+      save();
+      after = opening[1];
+    } else if (line.trim() === '<!-- /after -->') {
+      save(after);
+      after = undefined;
+    } else {
+      lines.push(line);
+    }
+  }
+  save();
+  return blocks;
+}
+
 function parseArchive(raw, id) {
   const header = raw?.match(/^\uFEFF?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
   if (!header) return null;
   const fields = new Map();
   const definitions = [];
+  const summaries = [];
   let field;
   for (const line of header[1].split(/\r?\n/)) {
     const pair = line.match(/^([a-z]+):[ \t]*(.*)$/);
     if (pair) {
       field = pair[1];
       fields.set(field, pair[2].trim());
-    } else if (field === 'terms' && /^\s+-\s+/.test(line)) {
-      const [name, definition, section = ''] = line.replace(/^\s+-\s+/, '').split('|').map((value) => value.trim());
-      if (name && definition) definitions.push({ name, definition, section });
+    } else if (/^\s+-\s+/.test(line)) {
+      const parts = line.replace(/^\s+-\s+/, '').split('|').map((value) => value.trim());
+      if (field === 'terms') {
+        const [name, definition, section = '', after] = parts;
+        if (name && definition) definitions.push({ name, definition, section, after });
+      } else if (field === 'summaries') {
+        const [after, summary] = parts;
+        if (after && summary) summaries.push({ after, summary });
+      }
     }
   }
 
@@ -143,7 +175,34 @@ function parseArchive(raw, id) {
   if (!title || !summary || !archiveCategories.has(category) || !markdown) return null;
 
   const record = { id, title, summary, category, collection: 'archives', code: fields.get('code') ?? '' };
-  return { record, markdown, definitions: [{ name: title, definition: summary, section: '' }, ...definitions] };
+  return { record, after: fields.get('after'), blocks: archiveBlocks(markdown), summaries, definitions };
+}
+
+function archiveVisibility(chapters, { through, spoilers } = {}) {
+  const order = new Map(chapters.map(({ id }, index) => [id, index]));
+  const boundary = order.get(through) ?? -1;
+  return (after) => spoilers || after === 'opening' || (order.get(after) ?? Infinity) <= boundary;
+}
+
+function visibleArchive(archive, canRead) {
+  if (!canRead(archive.after)) return null;
+
+  const blocks = archive.blocks.filter(({ after }) => canRead(after));
+  const summaries = archive.summaries.filter(({ after }) => canRead(after));
+  const definitions = archive.definitions.filter(({ after }) => canRead(after));
+  const markdown = blocks.map(({ markdown }) => markdown).join('\n\n');
+  const someBlocksHidden = blocks.length < archive.blocks.length;
+  const headings = someBlocksHidden ? new Set([...markdown.matchAll(/^\s*#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)]
+    .map((heading) => heading[1])) : null;
+  const record = { ...archive.record, summary: summaries.at(-1)?.summary ?? archive.record.summary };
+  return {
+    record,
+    markdown,
+    definitions: [{ name: record.title, definition: record.summary, section: '' },
+      ...definitions.map(({ name, definition, section }) => ({ name, definition,
+        section: headings && !headings.has(section) ? '' : section }))],
+    hasSpoilers: someBlocksHidden || summaries.length < archive.summaries.length || definitions.length < archive.definitions.length,
+  };
 }
 
 function markdownReader(root) {
@@ -196,32 +255,47 @@ export function contentSource(projectRoot) {
     return parseArchive(await readMarkdown([archiveDirectory, `${id}.md`]), id);
   }
 
-  async function publicEntries() {
+  async function publicChapters() {
+    const ordered = [...(await chapterIndex()).values()].filter(Boolean)
+      .sort((first, second) => first.volumeNumber - second.volumeNumber || first.chapterNumber - second.chapterNumber);
+    const chapters = await Promise.all(ordered.map(async ({ segments, chapterNumber, ...chapter }) => {
+      const body = readChapter(await readMarkdown(segments), chapter.title);
+      return body && { ...chapter, title: body.title };
+    }));
+    return chapters.filter(Boolean);
+  }
+
+  async function readArchives() {
     const files = await listDirectory(path.join(chapterRoot, archiveDirectory));
     const ids = files.filter((file) => file.isFile() && file.name.endsWith('.md')).map((file) => file.name.slice(0, -3)).sort();
-    const parsed = (await Promise.all(ids.map(archive))).filter(Boolean);
-    const archives = parsed.map(({ record }) => record);
-    const settings = archives.filter((record) => record.category === 'term').map((record) => ({ ...record, collection: 'settings' }));
-    const terms = new Map();
-    for (const { record, definitions } of parsed) {
-      const collection = record.category === 'term' ? 'settings' : 'archives';
-      for (const definition of definitions) {
-        if (!terms.has(definition.name)) terms.set(definition.name, { ...definition, entry: record.id, collection });
-      }
-    }
-    return { settings, archives, terms: [...terms.values()] };
+    return (await Promise.all(ids.map(archive))).filter(Boolean);
   }
 
   return {
-    async catalog() {
-      const [index, entries] = await Promise.all([chapterIndex(), publicEntries()]);
-      const ordered = [...index.values()].filter(Boolean)
-        .sort((first, second) => first.volumeNumber - second.volumeNumber || first.chapterNumber - second.chapterNumber);
-      const chapters = await Promise.all(ordered.map(async ({ segments, chapterNumber, ...chapter }) => {
-        const body = readChapter(await readMarkdown(segments), chapter.title);
-        return body && { ...chapter, title: body.title };
-      }));
-      return { chapters: chapters.filter(Boolean), ...entries };
+    async catalog(scope) {
+      const [chapters, parsed] = await Promise.all([publicChapters(), readArchives()]);
+      const canRead = archiveVisibility(chapters, scope);
+      const archives = [];
+      const settings = [];
+      const terms = new Map();
+      const hasSpoilers = { archives: false, settings: false };
+      for (const source of parsed) {
+        const entry = visibleArchive(source, canRead);
+        const isSetting = source.record.category === 'term';
+        if (!entry || entry.hasSpoilers) {
+          hasSpoilers.archives = true;
+          if (isSetting) hasSpoilers.settings = true;
+        }
+        if (!entry) continue;
+        const { record, definitions } = entry;
+        archives.push(record);
+        if (isSetting) settings.push({ ...record, collection: 'settings' });
+        const collection = isSetting ? 'settings' : 'archives';
+        for (const definition of definitions) {
+          if (!terms.has(definition.name)) terms.set(definition.name, { ...definition, entry: record.id, collection });
+        }
+      }
+      return { chapters, archives, settings, terms: [...terms.values()], hasSpoilers };
     },
 
     async chapter(id) {
@@ -229,9 +303,13 @@ export function contentSource(projectRoot) {
       return chapter ? readChapter(await readMarkdown(chapter.segments), chapter.title) : null;
     },
 
-    async entry(id) {
-      const entry = await archive(id);
-      return entry ? { markdown: entry.markdown } : null;
+    async entry(id, scope) {
+      const [source, chapters] = await Promise.all([archive(id), scope?.through ? publicChapters() : []]);
+      if (!source) return null;
+      const entry = visibleArchive(source, archiveVisibility(chapters, scope));
+      if (!entry) return { locked: true };
+      const { markdown, hasSpoilers } = entry;
+      return hasSpoilers ? { markdown, hasSpoilers } : { markdown };
     },
   };
 }
