@@ -1,0 +1,52 @@
+{
+  "settings": [
+    {
+      "id": "blind-zone",
+      "title": "盲域",
+      "category": "世界",
+      "summary": "一种无法被完整定义的异常状态。人类只能观察和记录它的局部。"
+    },
+    {
+      "id": "entry-exit",
+      "title": "入域与出域",
+      "category": "世界",
+      "summary": "现实时间在入域时暂停。成功归来的人接回各自的入域时刻。"
+    },
+    {
+      "id": "phenomena",
+      "title": "域闻",
+      "category": "异常",
+      "summary": "盲域中可观察、可记录的异常现象。调查从实际发生的事开始。"
+    },
+    {
+      "id": "entropy",
+      "title": "熵力",
+      "category": "能力",
+      "summary": "人在盲域中为生存产生的适应性变化，效果取决于使用者和当时的处境。"
+    },
+    {
+      "id": "reality",
+      "title": "现实中的异常",
+      "category": "异常",
+      "summary": "公众知道异常事件存在。熵力在现实中使用时可能引发现实污染。"
+    },
+    {
+      "id": "death",
+      "title": "域内死亡",
+      "category": "世界",
+      "summary": "死亡可能改变所在域区的空间、规则或域闻，影响因地而异。"
+    }
+  ],
+  "archives": [],
+  "terms": [
+    { "name": "盲域", "definition": "一种无法被完整定义的异常状态，整体规模和结构成谜。", "entry": "blind-zone" },
+    { "name": "域区", "definition": "调查者用来描述盲域中可观察到的局部范围的称呼。", "entry": "blind-zone", "section": "局部范围" },
+    { "name": "域闻", "definition": "盲域中可观察、可记录的异常现象。", "entry": "phenomena" },
+    { "name": "入域", "definition": "进入盲域的过程，首次入域往往发生在极端处境中。", "entry": "entry-exit", "section": "首次入域" },
+    { "name": "出域", "definition": "从盲域返回现实，接回本人入域时所处的时刻。", "entry": "entry-exit", "section": "出域与时间锚点" },
+    { "name": "时间锚点", "definition": "个人入域时的现实时间位置，成功出域后接回该时刻。", "entry": "entry-exit", "section": "出域与时间锚点" },
+    { "name": "熵力", "definition": "人在盲域中为生存产生的适应性变化。", "entry": "entropy" },
+    { "name": "觉醒", "definition": "个体首次表现出熵力的过程。" },
+    { "name": "现实污染", "definition": "在现实中使用熵力后可能出现的异常干扰。", "entry": "reality", "section": "现实污染" }
+  ]
+}
