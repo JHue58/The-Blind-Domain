@@ -312,7 +312,7 @@ button:not(:disabled) { cursor: pointer; }
 .chapter-row:hover { background: var(--panel); }
 .chapter-number { color: var(--amber); font-size: .9rem; }
 .chapter-list-title { font-weight: 600; }
-.chapter-list-progress { margin-left: auto; color: var(--muted); font-size: .875rem; }
+.chapter-list-meta { display: flex; gap: .75rem; margin-left: auto; color: var(--muted); font-size: .875rem; }
 
 .catalog-tools { display: flex; gap: .9rem 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.1rem; }
 .catalog-search {

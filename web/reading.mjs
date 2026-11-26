@@ -93,7 +93,8 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
 
   const article = node('article', 'chapter-body prose', markdown);
   const viewport = node('div', 'page-window', article);
-  const chapterLabel = title === chapter.label ? chapter.volume : `${chapter.volume} / ${chapter.label}`;
+  const chapterLabel = [chapter.volume, title !== chapter.label && chapter.label, chapter.status !== '定稿' && chapter.status]
+    .filter(Boolean).join(' / ');
   const heading = node('header', 'chapter-heading', node('p', 'eyebrow', chapterLabel), node('h1', '', title));
   const previousPage = button('上一页', 'button quiet');
   const nextPage = button('下一页', 'button quiet');
