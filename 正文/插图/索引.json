@@ -48,5 +48,31 @@
     "anchor": "周棠接过去，两只手托着。站厅里的广播又响起来，和楼梯底下听见的是同一句。",
     "inline": true,
     "archives": { "chen-ning": "v1-c002", "zhou-tang": "v1-c002" }
+  },
+  "v1-c003-b-entrance-v1": {
+    "status": "approved",
+    "file": "v1-c003-b-entrance-v1.jpg",
+    "sha256": "922ce683f679c2542854cefe3378f88974ae7dcff1008bb310451ea2a523c311",
+    "width": 1536,
+    "height": 1024,
+    "alt": "周棠侧身站在向上的楼梯上，用指尖挑起右侧瓷砖墙上广告纸的卷角。",
+    "caption": "第003章插图 · B 口上行梯",
+    "chapter": "v1-c003",
+    "anchor": "右边的白瓷砖上贴着一张药店广告。周棠侧过身，用指尖挑起下面卷着的一个角。纸后面粘了一层灰。",
+    "inline": true,
+    "archives": { "zhou-tang": "v1-c003", "huai-du-station-stairs": "v1-c003" }
+  },
+  "v1-c004-drain-cover-v1": {
+    "status": "approved",
+    "file": "v1-c004-drain-cover-v1.jpg",
+    "sha256": "115b2dbd69d4bfa6d5d18b01b567865c4ffa9c96cc452f39a66f639f6fbd999d",
+    "width": 1536,
+    "height": 1024,
+    "alt": "一滴水溅在楼梯口的排水沟铁盖上，旁边是潮湿的灰砖和扶手尽头。",
+    "caption": "第004章插图 · 楼梯口的铁盖",
+    "chapter": "v1-c004",
+    "anchor": "陈宁鞋尖碰到了铁盖的边。棚沿又落了两滴水，后一滴溅开，一星水沾在他鞋面上。",
+    "inline": true,
+    "archives": { "huai-du-pharmacy-approach": "v1-c004", "huai-du-station-stairs": "v1-c004" }
   }
 }
