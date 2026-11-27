@@ -1,6 +1,6 @@
 {
   "chen-ning-v1": {
-    "status": "approved",
+    "status": "withdrawn",
     "file": "chen-ning-v1.jpg",
     "sha256": "48327102aa93ee6ee32ffc120cb34bde0ec7b5db5425bac82c2c49f02aed32d2",
     "width": 1086,
@@ -12,7 +12,7 @@
     "archives": { "chen-ning": "v1-c001" }
   },
   "zhou-tang-v1": {
-    "status": "approved",
+    "status": "withdrawn",
     "file": "zhou-tang-v1.jpg",
     "sha256": "d21307cb072caa0c29890677fc35d209052ddab723bbf7ce7964ed7226edb159",
     "width": 1086,
@@ -36,8 +36,20 @@
     "inline": true,
     "archives": { "huai-du-station-broadcast": "v1-c001" }
   },
-  "v1-c002-fare-gates-v1": {
+  "v1-c001-bridge-video-v1": {
     "status": "approved",
+    "file": "v1-c001-bridge-video-v1.jpg",
+    "sha256": "fe0d4a470493559f2f96f525e6f2f1157455131e9c5974a77938f05419843cd3",
+    "width": 1536,
+    "height": 1024,
+    "alt": "路灯下的天桥楼梯，画面一角有人正往下走，只露出腿和蓝布袋。袋口露出一角报纸，脚下还有三级台阶。",
+    "caption": "场景示意 · 据槐渡天桥录像的文字描述绘制",
+    "chapter": "v1-c001",
+    "anchor": "封桥前一晚，有人在桥下拍过一段录像。一个提蓝布袋的人从桥上走下来。布袋里露着一角报纸，随着步子一下下拍打他的膝盖。拍了快一分钟，那人脚底下始终还剩三级台阶。",
+    "archives": { "huai-du-bridge-video": "v1-c001" }
+  },
+  "v1-c002-fare-gates-v1": {
+    "status": "withdrawn",
     "file": "v1-c002-fare-gates-v1.jpg",
     "sha256": "29f726d7f771c4adc73d9fb5f166f18eb5266190b8d6d6e9e768995f1f58ba7e",
     "width": 1536,
@@ -49,8 +61,21 @@
     "inline": true,
     "archives": { "chen-ning": "v1-c002", "zhou-tang": "v1-c002" }
   },
-  "v1-c003-b-entrance-v1": {
+  "v1-c002-folded-stairs-v1": {
     "status": "approved",
+    "file": "v1-c002-folded-stairs-v1.jpg",
+    "sha256": "a0c65a14bdfe13700620ec6672da160a488e281d7fece0a325ecb2ae444a7b7b",
+    "width": 1536,
+    "height": 1024,
+    "alt": "站内一段向下的楼梯，扶手旁的台阶上搁着一串钥匙，其中一把柄上缠着白胶布。",
+    "caption": "第002章插图 · 转角后的楼梯",
+    "chapter": "v1-c002",
+    "anchor": "几级台阶斜着往下。离他鞋尖半步远的地方，翘着一小截缠了白胶布的钥匙柄。",
+    "inline": true,
+    "archives": { "huai-du-station-stairs": "v1-c002" }
+  },
+  "v1-c003-b-entrance-v1": {
+    "status": "withdrawn",
     "file": "v1-c003-b-entrance-v1.jpg",
     "sha256": "922ce683f679c2542854cefe3378f88974ae7dcff1008bb310451ea2a523c311",
     "width": 1536,
@@ -61,6 +86,19 @@
     "anchor": "右边的白瓷砖上贴着一张药店广告。周棠侧过身，用指尖挑起下面卷着的一个角。纸后面粘了一层灰。",
     "inline": true,
     "archives": { "zhou-tang": "v1-c003", "huai-du-station-stairs": "v1-c003" }
+  },
+  "v1-c003-pharmacy-door-v1": {
+    "status": "approved",
+    "file": "v1-c003-pharmacy-door-v1.jpg",
+    "sha256": "804dd97db1e2dccfbcec4de09dfe715cd338bce55a7b59170c2d0c4148dc899d",
+    "width": 1536,
+    "height": 1024,
+    "alt": "药店玻璃门下露出半块暗红垫子，门前铺着灰砖，一盏小灯照着门内的半截柜台。",
+    "caption": "第003章插图 · 药店门前",
+    "chapter": "v1-c003",
+    "anchor": "他们离红垫子还有三块砖。贴着垫子的那块还是湿了一半。",
+    "inline": true,
+    "archives": { "huai-du-pharmacy-approach": "v1-c003" }
   },
   "v1-c004-drain-cover-v1": {
     "status": "approved",
