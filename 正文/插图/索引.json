@@ -125,5 +125,17 @@
     "anchor": "陈宁踏上第一级，抬头看见卷帘的底沿正在往上走。门洞已经露了大半。摊灯在雨里亮着，照出一角湿漉漉的红塑料布。",
     "inline": true,
     "archives": { "huai-du-station-broadcast": "v1-c005" }
+  },
+  "v1-c006-bus-stop-v1": {
+    "status": "approved",
+    "file": "v1-c006-bus-stop-v1.png",
+    "sha256": "eb0263d5c6fd334cbc8a6cb5a46b6b8d5240ddb19114efac1297549e2c508908",
+    "width": 1536,
+    "height": 1024,
+    "alt": "夜雨中，公交站牌旁的灯箱熄着。前方一辆轿车亮起两盏黄灯，灯光映在湿路上，画边露出一角红雨布。",
+    "caption": "第006章插图 · 公交站牌前",
+    "chapter": "v1-c006",
+    "anchor": "周棠先跨过棚外的积水，朝站牌走去。广告灯箱熄着，前面那辆车打着双闪，两点黄光一下下落在湿路上。",
+    "inline": true
   }
 }
