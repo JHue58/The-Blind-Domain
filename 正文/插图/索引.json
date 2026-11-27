@@ -112,5 +112,18 @@
     "anchor": "陈宁鞋尖碰到了铁盖的边。棚沿又落了两滴水，后一滴溅开，一星水沾在他鞋面上。",
     "inline": true,
     "archives": { "huai-du-pharmacy-approach": "v1-c004", "huai-du-station-stairs": "v1-c004" }
+  },
+  "v1-c005-c-entrance-v1": {
+    "status": "approved",
+    "file": "v1-c005-c-entrance-v1.png",
+    "sha256": "998ee39765c7e4b9654b602d8409e0a022281e17b7cb30f4f7f6f73bb62e8b90",
+    "width": 1536,
+    "height": 1024,
+    "alt": "从站内台阶仰望 C 口，卷帘底沿已抬到门洞上部，门外的摊灯照着雨里一角红塑料布。",
+    "caption": "第005章插图 · C 口卷帘升起（场景示意）",
+    "chapter": "v1-c005",
+    "anchor": "陈宁踏上第一级，抬头看见卷帘的底沿正在往上走。门洞已经露了大半。摊灯在雨里亮着，照出一角湿漉漉的红塑料布。",
+    "inline": true,
+    "archives": { "huai-du-station-broadcast": "v1-c005" }
   }
 }
