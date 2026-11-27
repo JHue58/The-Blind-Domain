@@ -149,19 +149,6 @@
     "chapter": "v1-c008",
     "anchor": "陈宁回过头。厢式货车停在斑马线上，一只前轮压住了男孩的水壶。壶身瘪了，水沿着白线上的裂缝往外流。",
     "inline": true,
-    "archives": { "huai-du-south-crosswalk": "v1-c008" }
-  },
-  "v1-c011-glass-door-v1": {
-    "status": "approved",
-    "file": "v1-c011-glass-door-v1.jpg",
-    "sha256": "dc825ef3a7f3424f196f42960442bbc15c584520bd8154027362fbe590a16325",
-    "width": 1536,
-    "height": 1024,
-    "alt": "车棚里一道关着的玻璃门，门下是白石门槛。玻璃后能看见一截下行梯、半截刷灰漆的扶手和一盏小灯。",
-    "caption": "场景示意 · 旧地道玻璃门",
-    "chapter": "v1-c011",
-    "anchor": "玻璃后面的白墙不见了。隔着门能看见一截往下的栏杆，靠门的半截刷着灰漆，刷子到接头那里就停了。再往下亮着一盏小灯，照到的地方比门外低了好几级。",
-    "inline": true,
-    "archives": { "huai-du-station-interior": "v1-c011" }
+    "archives": { "huai-du-south-crosswalk": "v1-c008", "huai-du-station-stairs": "v1-c009" }
   }
 }
