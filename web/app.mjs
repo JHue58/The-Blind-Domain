@@ -82,8 +82,8 @@ function home(catalog) {
   cover.width = 1536;
   cover.height = 1024;
   const hero = node('section', 'hero', cover, node('div', 'hero-shade'), node('div', 'hero-copy',
-    node('p', 'eyebrow hero-genre', '都市怪谈 · 规则探索'), node('h1', '', '盲域'),
-    node('p', 'hero-deck', '日常秩序之外，存在一种无法定义的异常。\n进入之后，现实的时间就此停下。'),
+    node('p', 'eyebrow hero-genre', '都市怪谈 · 超自然'), node('h1', '', '盲域'),
+    node('p', 'hero-deck', '录像里，一个人沿着天桥往下走，脚下始终还剩三级台阶。\n封桥后，附近的人改从地铁站过街。'),
     node('div', 'hero-actions',
       link(recent ? '继续阅读' : first ? '开始阅读' : '查看章节目录', recent || first ? chapterHref(recent || first) : '#/read', 'button primary'),
       link('浏览设定集', '#/settings', 'button hero-secondary'))));
