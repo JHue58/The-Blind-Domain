@@ -158,14 +158,27 @@
     "width": 1536,
     "height": 1024,
     "alt": "B 口的应急灯照着几级石台阶，最上一阶仅剩一截露在右墙边，平台上可见一双黑鞋。",
-    "caption": "第010章插图 · B 口关闭时（场景示意）",
-    "chapter": "v1-c010",
+    "caption": "第011章插图 · B 口关闭时（场景示意）",
+    "chapter": "v1-c011",
     "anchor": "离平台最近的一级突然贴着墙往里缩。石沿上有一道鞋底蹭出来的黑印，越缩越短，最后没进了墙里。",
     "inline": true,
     "archives": {
-      "huai-du-announcer": "v1-c010",
-      "huai-du-station-broadcast": "v1-c010",
-      "huai-du-station-stairs": "v1-c010"
+      "huai-du-announcer": "v1-c011",
+      "huai-du-station-broadcast": "v1-c011",
+      "huai-du-station-stairs": "v1-c011"
     }
+  },
+  "v1-c010-announcer-v1": {
+    "status": "approved",
+    "file": "v1-c010-announcer-v1.png",
+    "sha256": "7247fc2911f4090b9f96fd977a8ba19bd2c7ea2625cc2ab7ee70b07ef0d40416",
+    "width": 1536,
+    "height": 1024,
+    "alt": "从 B 口上行梯仰看平台。深色制服的人影立在石沿边，应急灯照到衣领一侧、嘴和下巴。",
+    "caption": "平台边的人影 · 据周棠所见绘制",
+    "chapter": "v1-c010",
+    "anchor": "那人站在平台边，两只黑鞋的鞋尖齐着石沿。墙根的应急灯照见一身深色制服。那人侧过半边身子，光只够照到嘴和下巴。",
+    "inline": true,
+    "archives": { "huai-du-announcer": "v1-c010" }
   }
 }
