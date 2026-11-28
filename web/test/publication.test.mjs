@@ -5,6 +5,8 @@ import { mkdir, mkdtemp, realpath, rename, rm, unlink, writeFile } from 'node:fs
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { contentSource } from '../content.mjs';
 import { createReaderServer } from '../server.mjs';
 
 async function publicationFixture(context) {
@@ -249,6 +251,108 @@ after: v1-c002
   assert.ok(full.terms.some(({ name }) => name === '旧格式别名'));
   assert.deepEqual(await (await get('/api/entries/legacy?spoilers=1')).json(), { markdown: '旧格式正文。' });
   assert.match((await (await get(personPath + '?spoilers=1')).json()).markdown, /没标章节.*还没写完/s);
+});
+
+test('档案要点、历次记录和关联随章开放，早期目录不含后续更新章号', async (context) => {
+  const { write, start } = await publicationFixture(context);
+  const dossier = `---
+title: 测试档案
+category: phenomenon
+summary: 初次目击摘要。
+after: v1-c001
+facts:
+  - v1-c001 | 证据 | 第一次目击
+  - v1-c002 | 证据 | 两次观察
+  - spoiler | 假说 | 待公开解释
+related:
+  - v1-c001 | hidden-record
+  - v1-c002 | old-record
+---
+
+<!-- after: v1-c002 -->
+补记了第二次观察。
+<!-- /after -->
+
+<!-- after: v1-c001 -->
+保留第一次目击的经过。
+<!-- /after -->
+
+<!-- after: spoiler -->
+这段解释等待正文揭示。
+<!-- /after -->`;
+  const record = (title, after) => `---\ntitle: ${title}\ncategory: clue\nsummary: 记录摘要。\nafter: ${after}\n---\n\n记录正文。`;
+  await Promise.all([
+    write('正文/第一卷/第001章.md', '# 第一章\n\n第一章正文。'),
+    write('正文/第一卷/第002章.md', '# 第二章\n\n第二章正文。'),
+    write('正文/档案室/dossier.md', dossier),
+    write('正文/档案室/hidden-record.md', record('后续档案', 'v1-c002')),
+    write('正文/档案室/old-record.md', record('先见的档案', 'opening')),
+  ]);
+
+  const get = await start();
+  const entryPath = '/api/entries/dossier';
+  assert.deepEqual(await (await get(entryPath)).json(), { locked: true });
+
+  const firstScope = '?through=v1-c001';
+  const catalog = await (await get(`/api/catalog${firstScope}`)).json();
+  const catalogEntry = catalog.archives.find(({ id }) => id === 'dossier');
+  assert.equal(catalogEntry.openedIn, 'v1-c001');
+  assert.deepEqual(catalogEntry.chapters, ['v1-c001']);
+  assert.ok(!catalog.archives.some(({ id }) => id === 'hidden-record'));
+
+  const first = await (await get(entryPath + firstScope)).json();
+  assert.deepEqual(first.facts, [{ label: '证据', value: '第一次目击' }]);
+  assert.deepEqual(first.records, [{ after: 'v1-c001', markdown: '保留第一次目击的经过。' }]);
+  assert.equal(first.hasSpoilers, true);
+  assert.doesNotMatch(JSON.stringify(first), /hidden-record|old-record|两次观察|v1-c002|待公开解释/);
+
+  const secondScope = '?through=v1-c002';
+  const secondCatalog = await (await get(`/api/catalog${secondScope}`)).json();
+  assert.deepEqual(secondCatalog.archives.find(({ id }) => id === 'dossier').chapters, ['v1-c001', 'v1-c002']);
+  const second = await (await get(entryPath + secondScope)).json();
+  assert.deepEqual(second.facts, [{ label: '证据', value: '两次观察' }]);
+  assert.deepEqual(second.records.map(({ after }) => after), ['v1-c001', 'v1-c002']);
+  assert.deepEqual(second.related, ['hidden-record', 'old-record']);
+  assert.equal(second.hasSpoilers, true);
+
+  const full = await (await get(`${entryPath}?spoilers=1`)).json();
+  assert.equal(full.facts.find(({ label }) => label === '假说').value, '待公开解释');
+  assert.equal(full.records.at(-1).after, 'spoiler');
+  assert.equal(full.hasSpoilers, undefined);
+  assert.deepEqual(await (await get(entryPath + firstScope)).json(), first);
+});
+
+test('槐渡档案在各自章节开放，首次配图与术语范围符合正文进度', async () => {
+  const source = contentSource(fileURLToPath(new URL('../../', import.meta.url)));
+  const openings = [
+    ['huai-du-bridge-video', 'v1-c001', '开篇', '线索'],
+    ['huai-du-station-zone', 'v1-c008', 'v1-c007', '域区'],
+    ['huai-du-announcer', 'v1-c010', 'v1-c009', '域闻'],
+  ];
+  for (const [id, through, previous, category] of openings) {
+    assert.deepEqual((await source.entry(id, { through: previous })).data, { locked: true }, category);
+    const { data } = await source.entry(id, { through });
+    assert.ok(data.facts.length > 0, category);
+    assert.equal(data.illustrations.length, 1, category);
+  }
+
+  const opener = (await source.entry('huai-du-announcer', { through: 'v1-c010' })).data;
+  assert.doesNotMatch(JSON.stringify(opener), /台阶.*收回|扶手上的抓握|zhou-tang-grip|v1-c011|v1-c012/);
+  const followUp = (await source.entry('huai-du-announcer', { through: 'v1-c011' })).data;
+  assert.match(followUp.markdown, /台阶收回与停播/);
+  assert.equal(followUp.illustrations.length, 2);
+  assert.match(followUp.illustrations[0].caption, /周棠所见/);
+
+  assert.deepEqual((await source.entry('zhou-tang-grip', { through: 'v1-c011' })).data, { locked: true });
+  const scope = { through: 'v1-c012' };
+  const grip = (await source.entry('zhou-tang-grip', scope)).data;
+  assert.match(grip.markdown, /掌心仍留在原来那块铁管上/);
+  assert.match(grip.facts.find(({ label }) => label === '使用后').value, /右手发麻/);
+  assert.doesNotMatch(JSON.stringify(grip), /锁住抓握|熵力|两秒|现实污染/);
+  assert.ok(!(await source.catalog(scope)).terms.some(({ name }) => ['锁住抓握', '熵力', '域闻', '域体'].includes(name)));
+  const withSpoilers = (await source.entry('zhou-tang-grip', { spoilers: true })).data;
+  assert.match(withSpoilers.markdown, /两秒/);
+  assert.equal(withSpoilers.facts.find(({ label }) => label === '能力名称').value, '锁住抓握');
 });
 
 test('插图跟随原文段落和档案解锁，撤审、改稿或图片替换时停止显示', async (context) => {

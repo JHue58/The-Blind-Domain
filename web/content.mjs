@@ -152,6 +152,8 @@ function parseArchive(raw, id) {
   const fields = new Map();
   const definitions = [];
   const summaries = [];
+  const facts = [];
+  const related = [];
   let field;
   for (const line of header[1].split(/\r?\n/)) {
     const pair = line.match(/^([a-z]+):[ \t]*(.*)$/);
@@ -166,6 +168,12 @@ function parseArchive(raw, id) {
       } else if (field === 'summaries') {
         const [after, summary] = parts;
         if (after && summary) summaries.push({ after, summary });
+      } else if (field === 'facts') {
+        const [after, label, value] = parts;
+        if (after && label && value) facts.push({ after, label, value });
+      } else if (field === 'related') {
+        const [after, target] = parts;
+        if (after && target && target !== id && slugPattern.test(target)) related.push({ after, id: target });
       }
     }
   }
@@ -177,34 +185,54 @@ function parseArchive(raw, id) {
   if (!title || !summary || !archiveCategories.has(category) || !markdown) return null;
 
   const record = { id, title, summary, category, collection: 'archives', code: fields.get('code') ?? '' };
-  return { record, after: fields.get('after'), blocks: archiveBlocks(markdown), summaries, definitions };
+  return { record, after: fields.get('after'), blocks: archiveBlocks(markdown), summaries, definitions, facts, related };
 }
 
 function archiveVisibility(chapters, { through, spoilers } = {}) {
   const order = new Map(chapters.map(({ id }, index) => [id, index]));
   const boundary = order.get(through) ?? -1;
-  return (after) => spoilers || after === 'opening' || (order.get(after) ?? Infinity) <= boundary;
+  const canRead = (after) => spoilers || after === 'opening' || (order.get(after) ?? Infinity) <= boundary;
+  return { order, canRead };
 }
 
-function visibleArchive(archive, canRead) {
+function visibleArchive(archive, { order, canRead }) {
   if (!canRead(archive.after)) return null;
 
   const blocks = archive.blocks.filter(({ after }) => canRead(after));
   const summaries = archive.summaries.filter(({ after }) => canRead(after));
   const definitions = archive.definitions.filter(({ after }) => canRead(after));
+  const facts = archive.facts.filter(({ after }) => canRead(after));
+  const related = archive.related.filter(({ after }) => canRead(after));
   const markdown = blocks.map(({ markdown }) => markdown).join('\n\n');
   const someBlocksHidden = blocks.length < archive.blocks.length;
   const headings = someBlocksHidden ? new Set([...markdown.matchAll(/^\s*#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)]
     .map((heading) => heading[1])) : null;
   const record = { ...archive.record, summary: summaries.at(-1)?.summary ?? archive.record.summary };
+  const changes = [blocks, summaries, definitions, facts].flat().map(({ after }) => after);
+  const chapters = [...new Set([archive.after, ...changes])]
+    .filter((after) => order.has(after)).sort((first, second) => order.get(first) - order.get(second));
+  if (order.has(archive.after)) record.openedIn = archive.after;
+  if (chapters.length) record.chapters = chapters;
   return {
-    record,
-    markdown,
+    record, markdown, blocks, facts, related,
     definitions: [{ name: record.title, definition: record.summary, section: '' },
       ...definitions.map(({ name, definition, section }) => ({ name, definition,
         section: headings && !headings.has(section) ? '' : section }))],
-    hasSpoilers: someBlocksHidden || summaries.length < archive.summaries.length || definitions.length < archive.definitions.length,
+    hasSpoilers: someBlocksHidden || summaries.length < archive.summaries.length || definitions.length < archive.definitions.length
+      || facts.length < archive.facts.length || related.length < archive.related.length,
   };
+}
+
+function dossierRecords(blocks, order) {
+  const records = new Map();
+  for (const { after, markdown } of blocks) {
+    const key = order.has(after) || after === 'opening' ? after : 'spoiler';
+    if (!records.has(key)) records.set(key, []);
+    records.get(key).push(markdown);
+  }
+  const position = (key) => key === 'opening' ? -1 : order.get(key) ?? order.size;
+  return [...records].sort(([first], [second]) => position(first) - position(second))
+    .map(([after, parts]) => ({ after, markdown: parts.join('\n\n') }));
 }
 
 function markdownReader(root) {
@@ -283,13 +311,13 @@ export function contentSource(projectRoot) {
   return {
     async catalog(scope) {
       const [chapters, parsed] = await Promise.all([publicChapters(), readArchives()]);
-      const canRead = archiveVisibility(chapters, scope);
+      const visibility = archiveVisibility(chapters, scope);
       const archives = [];
       const settings = [];
       const terms = new Map();
       const hasSpoilers = { archives: false, settings: false };
       for (const source of parsed) {
-        const entry = visibleArchive(source, canRead);
+        const entry = visibleArchive(source, visibility);
         const isSetting = source.record.category === 'term';
         if (!entry || entry.hasSpoilers) {
           hasSpoilers.archives = true;
@@ -317,10 +345,11 @@ export function contentSource(projectRoot) {
     },
 
     async entry(id, scope = {}) {
-      const [source, chapters] = await Promise.all([archive(id), scope?.through ? publicChapters() : []]);
+      const [source, chapters] = await Promise.all([archive(id), publicChapters()]);
       if (!source) return null;
-      const canRead = archiveVisibility(chapters, scope);
-      const entry = visibleArchive(source, canRead);
+      const visibility = archiveVisibility(chapters, scope);
+      const { order, canRead } = visibility;
+      const entry = visibleArchive(source, visibility);
       if (!entry) return illustratedDetail({ locked: true }, []);
 
       const selected = (await illustrations.registry()).filter((drawing) => drawing.entries.has(id));
@@ -329,9 +358,20 @@ export function contentSource(projectRoot) {
       const paragraphs = new Map(await Promise.all([...chapterIds].map(async (chapter) =>
         [chapter, manuscriptParagraphs((await chapterBody(chapter, index))?.markdown)])));
       const valid = await illustrations.files(selected.filter(({ chapter, anchor }) => containsAnchor(paragraphs.get(chapter), anchor)));
-      const visible = valid.filter(({ chapter, entries }) => canRead(chapter) && canRead(entries.get(id)));
+      const visible = valid.filter(({ chapter, entries }) => canRead(chapter) && canRead(entries.get(id)))
+        .sort((first, second) => order.get(first.chapter) - order.get(second.chapter));
       const data = { markdown: entry.markdown };
-      if (entry.hasSpoilers || visible.length < valid.length) data.hasSpoilers = true;
+      if (entry.facts.length) {
+        data.facts = [...new Map(entry.facts.map(({ label, value }) => [label, value]))]
+          .map(([label, value]) => ({ label, value }));
+        data.records = dossierRecords(entry.blocks, order);
+      }
+      const linked = await Promise.all([...new Set(entry.related.map(({ id }) => id))].map(archive));
+      const related = linked.filter((target) => target && canRead(target.after)).map(({ record }) => record.id);
+      if (related.length) data.related = related;
+      if (entry.hasSpoilers || visible.length < valid.length || linked.some((target) => target && !canRead(target.after))) {
+        data.hasSpoilers = true;
+      }
       return illustratedDetail(data, visible, `entries/${id}`, scope);
     },
 

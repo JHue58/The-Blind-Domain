@@ -343,14 +343,71 @@ button:not(:disabled) { cursor: pointer; }
 .category-button:hover, .category-button[aria-pressed="true"] { color: var(--text); border-color: #647b7d; background: var(--panel-raised); }
 .category-button[aria-pressed="true"] { color: var(--amber); }
 
+.archive-view .page-heading { border-bottom: 1px solid var(--border); padding-bottom: 1.4rem; }
+.archive-layout { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: clamp(1.15rem, 3.4vw, 2.65rem); align-items: start; }
+.archive-sidebar { position: sticky; top: calc(var(--header-height) + 1rem); }
+.archive-sidebar .category-tabs { display: grid; gap: .22rem; }
+.archive-sidebar .category-button { display: flex; justify-content: space-between; align-items: center; gap: .65rem; text-align: left; }
+.category-count { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.archive-directory .catalog-tools { margin-bottom: .75rem; }
+.archive-directory .catalog-search { flex: 1 1 15rem; }
+.archive-chapter-select {
+  appearance: none;
+  min-height: 2.85rem;
+  padding: .5rem 2rem .5rem .85rem;
+  border: 1px solid var(--border);
+  border-radius: .35rem;
+  color: var(--text);
+  background: linear-gradient(45deg, transparent 50%, var(--muted) 50%) right 1.1rem center / .34rem .34rem no-repeat,
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%) right .76rem center / .34rem .34rem no-repeat, var(--panel);
+}
+.archive-count { margin-bottom: .52rem; color: var(--muted); font-size: .9rem; }
+.archive-register { padding: 0; margin: 0; list-style: none; border-top: 1px solid var(--border); }
+.archive-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .75rem 1.2rem;
+  padding: 1.08rem clamp(.75rem, 2vw, 1.4rem);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.archive-row:hover, .archive-row:focus-visible { background: var(--panel-raised); }
+.archive-row-copy, .archive-row-date { display: grid; align-content: start; }
+.archive-row-title { margin-block: .12rem .2rem; font: 700 1.32rem/1.45 var(--serif); }
+.archive-row-summary { color: var(--muted); }
+.archive-row-date { gap: .12rem; color: var(--muted); font-size: .875rem; text-align: end; white-space: nowrap; }
+.archive-row-date span { color: var(--text); }
+
 .reference-view { padding-top: clamp(1.5rem, 4vw, 2.6rem); }
-.back-link { display: inline-block; margin-bottom: 1.15rem; }
+.reference-toolbar, .reference-crumbs { display: flex; flex-wrap: wrap; gap: .55rem 1rem; align-items: center; }
+.reference-toolbar { margin-bottom: 1.15rem; }
+.reference-crumbs { margin-right: auto; }
+.spoiler-status { color: var(--amber); font-size: .875rem; }
 .reference-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12.75rem, 16rem); gap: 1.15rem; align-items: start; }
+.reference-layout-single { grid-template-columns: minmax(0, 56rem); }
 .reference-article { padding: clamp(1.3rem, 4vw, 3rem); min-width: 0; }
 .reference-heading { padding-bottom: 1.3rem; border-bottom: 1px solid var(--border); }
 .reference-heading h1 { margin-top: .55rem; }
 .reference-body { margin-top: 1.35rem; color: #d8e1dd; }
-.reference-actions { display: flex; margin-top: 1.5rem; }
+.dossier-view .reference-heading h1 { font-size: clamp(1.95rem, 4.6vw, 3.6rem); text-wrap: balance; }
+.dossier-summary { margin-top: .85rem; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
+.dossier-overview { display: grid; align-items: start; gap: 1.15rem; margin-top: 1.25rem; }
+.dossier-overview.with-evidence { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.dossier-facts { margin: 0; border-block: 1px solid var(--border); background: var(--background); }
+.dossier-facts div { display: grid; grid-template-columns: minmax(5.25rem, 28%) minmax(0, 1fr); gap: .65rem; padding: .55rem .8rem; }
+.dossier-facts div + div { border-top: 1px solid var(--border); }
+.dossier-facts dt { color: var(--muted); font-size: .875rem; }
+.dossier-facts dd { margin: 0; overflow-wrap: anywhere; }
+.dossier-evidence h2 { color: var(--muted); font-size: .875rem; font-weight: 500; }
+.dossier-evidence .illustration { margin-block: .45rem .85rem; }
+.dossier-evidence .illustration:last-child { margin-bottom: 0; }
+.dossier-record { scroll-margin-top: calc(var(--header-height) + 1.5rem); }
+.dossier-record + .dossier-record { border-top: 1px solid var(--border); margin-top: 1.15rem; padding-top: 1.15rem; }
+.dossier-record .dossier-record-source { margin-bottom: .35rem; color: var(--amber); font-size: .875rem; }
+.dossier-record-source + :is(h2, h3, h4, h5, h6) { margin-top: 0; }
+.dossier-record > :last-child { margin-bottom: 0; }
 .spoiler-dialog {
   width: min(26rem, calc(100% - 2rem));
   padding: clamp(1.15rem, 5vw, 1.65rem);
@@ -362,7 +419,7 @@ button:not(:disabled) { cursor: pointer; }
 .spoiler-dialog::backdrop { background: rgb(8 16 18 / .78); }
 .spoiler-dialog p { margin-top: .55rem; color: var(--muted); }
 .spoiler-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .55rem; margin-top: 1.2rem; }
-.reference-aside { position: sticky; top: calc(var(--header-height) + 1rem); display: grid; gap: .85rem; }
+.reference-aside { position: sticky; top: calc(var(--header-height) + 1rem); display: grid; gap: .85rem; max-height: calc(100vh - var(--header-height) - 2rem); overflow-y: auto; }
 .reference-index { padding: .95rem 1.05rem; display: grid; gap: .3rem; }
 .reference-index h2 { margin-bottom: .45rem; font-size: 1rem; }
 .reference-index a { color: var(--muted); text-decoration: none; padding-block: .18rem; overflow-wrap: anywhere; }
@@ -480,6 +537,13 @@ button:not(:disabled) { cursor: pointer; }
 .page-controls .button:last-child { justify-self: end; }
 .page-label { color: var(--muted); font-size: .91rem; font-variant-numeric: tabular-nums; }
 .chapter-finish { display: flex; width: fit-content; margin: 1.05rem auto 0; }
+.chapter-archives { margin-top: 1.4rem; padding: .9rem 1rem; background: var(--background); border: 1px solid var(--border); border-radius: .35rem; }
+.chapter-archives-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .3rem .8rem; }
+.chapter-archives-heading h2 { font-size: 1rem; }
+.chapter-archives-heading a { font-size: .875rem; }
+.chapter-archives ul { display: grid; gap: .32rem; list-style: none; padding: 0; margin: .6rem 0 0; }
+.chapter-archives li { display: flex; align-items: baseline; gap: .7rem; }
+.chapter-archives li span { flex: none; color: var(--muted); font-size: .875rem; }
 .chapter-nav { display: flex; flex-wrap: wrap; gap: .75rem; border-top: 1px solid var(--border); margin-top: 1.4rem; padding-top: 1rem; }
 .chapter-nav .next-chapter { margin-left: auto; }
 
@@ -488,6 +552,11 @@ button:not(:disabled) { cursor: pointer; }
   .gateway { grid-template-columns: auto minmax(0, 1fr); }
   .gateway-action { display: none; }
   .reference-layout { grid-template-columns: minmax(0, 1fr) minmax(10rem, 12rem); }
+  .reference-layout-single, .dossier-view .reference-layout { grid-template-columns: 1fr; }
+  .dossier-view .reference-aside { position: static; max-height: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .archive-layout { grid-template-columns: 1fr; gap: 1rem; }
+  .archive-sidebar { position: static; }
+  .archive-sidebar .category-tabs { display: flex; gap: .4rem; }
 }
 
 @media (max-width: 580px) {
@@ -509,8 +578,10 @@ button:not(:disabled) { cursor: pointer; }
   .featured { margin-top: 1.8rem; }
   .card-grid { grid-template-columns: 1fr; gap: .7rem; }
   .page-view { padding-bottom: 2.6rem; }
-  .reference-layout { grid-template-columns: 1fr; }
-  .reference-aside { position: static; }
+  .archive-row { grid-template-columns: 1fr; gap: .42rem; }
+  .archive-row-date { display: flex; gap: .45rem; text-align: start; }
+  .reference-layout, .dossier-overview.with-evidence, .dossier-view .reference-aside { grid-template-columns: 1fr; }
+  .reference-aside { position: static; max-height: none; }
   .reader { width: calc(100% - 1.5rem); }
   .reader-options { gap: .5rem; }
   .reader-book { padding-bottom: 1.2rem; }

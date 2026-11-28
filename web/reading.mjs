@@ -98,7 +98,7 @@ function clamp(value, lowest, highest) {
   return Math.min(highest, Math.max(lowest, value));
 }
 
-export function mountReader(main, { chapter, markdown, bodyTitle, chapters, closePreviews, onChapterComplete }) {
+export function mountReader(main, { chapter, markdown, bodyTitle, chapters, closePreviews, archiveUpdates, onChapterComplete }) {
   const title = bodyTitle || chapter.title;
   const scroll = button('滚动', 'mode-button');
   const pages = button('翻页', 'mode-button');
@@ -125,7 +125,7 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
 
   const finish = button('标记本章已读', 'button quiet chapter-finish');
   finish.hidden = true;
-  const book = node('div', 'reader-book', heading, viewport, pagination, finish);
+  const book = node('div', 'reader-book', heading, viewport, pagination, finish, archiveUpdates);
   const index = chapters.findIndex((item) => item.id === chapter.id);
   const previous = chapters[index - 1];
   const next = chapters[index + 1];
@@ -190,6 +190,7 @@ export function mountReader(main, { chapter, markdown, bodyTitle, chapters, clos
     const canFinish = mode === 'pages' ? page === pageCount - 1
       : window.scrollY === 0 && article.getBoundingClientRect().bottom <= window.innerHeight;
     finish.hidden = reading.completed.has(chapter.id) || !canFinish;
+    if (archiveUpdates) archiveUpdates.hidden = mode === 'pages' && !canFinish;
   }
 
   function record(reachedEnd = false) {
