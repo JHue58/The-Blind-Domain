@@ -72,7 +72,7 @@
     "chapter": "v1-c002",
     "anchor": "脚下又是往下的台阶。那串钥匙就在他脚边，白胶布的那一把还翘着。周棠刚才明明把它留在了站厅另一头的C口楼梯上。",
     "inline": true,
-    "archives": { "huai-du-station-stairs": "v1-c002" }
+    "archives": { "huai-du-station-stairs": "v1-c002", "huai-du-station-zone": "v1-c008" }
   },
   "v1-c003-b-entrance-v1": {
     "status": "withdrawn",
@@ -165,7 +165,8 @@
     "archives": {
       "huai-du-announcer": "v1-c011",
       "huai-du-station-broadcast": "v1-c011",
-      "huai-du-station-stairs": "v1-c011"
+      "huai-du-station-stairs": "v1-c011",
+      "huai-du-station-zone": "v1-c011"
     }
   },
   "v1-c010-announcer-v1": {
@@ -180,5 +181,17 @@
     "anchor": "那人站在平台边，两只黑鞋的鞋尖齐着石沿。墙根的应急灯照见一身深色制服。那人侧过半边身子，光只够照到嘴和下巴。",
     "inline": true,
     "archives": { "huai-du-announcer": "v1-c010" }
+  },
+  "v1-c013-hospital-speaker-v1": {
+    "status": "approved",
+    "file": "v1-c013-hospital-speaker-v1.png",
+    "sha256": "4d0f5cc1ec939ec01509bcb86c285417f8bee583f87861bbf6853befef5955b9",
+    "width": 1536,
+    "height": 1024,
+    "alt": "医院走廊的窗边排着蓝色候诊椅，紧挨天花板的墙上装着一只灰白色方形喇叭。",
+    "caption": "医院候诊走廊的叫号喇叭（场景示意）",
+    "chapter": "v1-c013",
+    "anchor": "头顶那只灰白的方喇叭响了。陈宁等着它念下一个号，却先听见有人轻轻吸了口气。",
+    "archives": { "hospital-call": "v1-c013" }
   }
 }
