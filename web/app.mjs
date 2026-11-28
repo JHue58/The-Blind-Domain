@@ -193,13 +193,11 @@ function chapterReference(chapter) {
   return `${chapter.volume} · ${chapter.label}`;
 }
 
-function archiveRow(entry, chapter) {
+function archiveRow(entry) {
   const category = archiveCategories.get(entry.category);
-  const reference = chapter ? chapterReference(chapter) : '';
   return node('li', '', link([
-    node('span', 'archive-row-copy', node('span', 'card-category', entry.code ? `${category} / ${entry.code}` : category),
-      node('span', 'archive-row-title', entry.title), node('span', 'archive-row-summary', entry.summary)),
-    reference ? node('span', 'archive-row-date', node('span', '', entry.openedIn === chapter.id ? '建档' : '更新'), reference) : null,
+    node('span', 'archive-row-category', category, entry.code ? node('code', 'archive-code', entry.code) : null),
+    node('span', 'archive-row-copy', node('span', 'archive-row-title', entry.title), node('span', 'archive-row-summary', entry.summary)),
   ], entryHref('archives', entry.id, '', archiveOrigin()), 'archive-row'));
 }
 
@@ -243,8 +241,7 @@ function archiveDirectory(catalog) {
     const shown = searchable(filtered, catalog.terms, filters.archives);
     for (const tab of categories.children) tab.setAttribute('aria-pressed', String(filters.category === tab.dataset.category));
     count.textContent = `${shown.length} 份档案`;
-    results.replaceChildren(shown.length ? node('ul', 'archive-register', shown.map((entry) =>
-      archiveRow(entry, chapters.get(latest(entry))))) : emptyState(
+    results.replaceChildren(shown.length ? node('ul', 'archive-register', shown.map(archiveRow)) : emptyState(
       entries.length ? '未找到匹配档案' : '暂无可阅档案',
       entries.length ? '试试其他名称、编号、类别或章节。' : '读完正文后可回到这里查阅。',
       entries.length ? null : link('查看章节目录', '#/read', 'button quiet'), 'archive'));
@@ -269,8 +266,8 @@ function archiveDirectory(catalog) {
 
   return node('div', 'frame page-view archive-view',
     pageHeading('档案室', description, spoilerControl(catalog.hasSpoilers.archives)),
-    node('div', 'archive-layout', node('aside', 'archive-sidebar', categories),
-      node('section', 'archive-directory', node('div', 'catalog-tools', search, chapterIds.size ? select : null), count, results)));
+    node('div', 'archive-layout', node('aside', 'archive-sidebar archive-categories', node('h2', '', '档案分类'), categories),
+      node('section', 'archive-sheet archive-directory', node('div', 'catalog-tools', search, chapterIds.size ? select : null), count, results)));
 }
 
 function chapterArchiveUpdates(catalog, chapter) {
@@ -287,63 +284,88 @@ function chapterArchiveUpdates(catalog, chapter) {
       link(entry.title, entryHref(entry.collection, entry.id, '', chapter.id), 'text-link')))));
 }
 
-function entryPage(entry, { markdown, hasSpoilers, illustrations = [], facts = [], records = [], related = [] }, catalog) {
-  const isArchive = entry.collection === 'archives';
-  const category = archiveCategories.get(entry.category);
-  const dossier = isArchive && caseCategories.has(entry.category);
+function referenceToolbar(entry, catalog, hasSpoilers) {
+  const archive = entry.collection === 'archives';
   const from = archiveOrigin();
-  const chapters = new Map(catalog.chapters.map((chapter) => [chapter.id, chapter]));
-  const opened = chapters.get(entry.openedIn);
-  const title = node('header', 'reference-heading',
-    node('p', 'eyebrow', [category, entry.code, dossier && opened && `建档于 ${chapterReference(opened)}`].filter(Boolean).join(' / ')),
-    node('h1', '', entry.title), dossier ? node('p', 'dossier-summary', entry.summary) : null);
-  const page = node('article', 'reference-article', title);
-  const terms = termIndex(catalog.terms, entry.id, from);
-  const renderBody = (source) => renderMarkdown(source, terms, (href) => resolveRoute(catalog, href));
-  const evidence = illustrations.length ? node('section', 'dossier-evidence', node('h2', '', '现场配图'),
-    illustrations.map(renderIllustration)) : null;
-  if (dossier && (facts.length || evidence)) {
-    const details = facts.length ? node('dl', 'dossier-facts', facts.map(({ label, value }) =>
-      node('div', '', node('dt', '', label), node('dd', '', value)))) : null;
-    page.append(node('div', details && evidence ? 'dossier-overview with-evidence' : 'dossier-overview', details, evidence));
-  }
+  const origin = catalog.chapters.find(({ id }) => id === from);
+  return node('div', 'reference-toolbar',
+    node('div', 'reference-crumbs', link(archive ? '返回档案室' : '返回设定集', entryHref(entry.collection, '', '', from), 'text-link'),
+      origin ? link(`回到${origin.label}`, chapterHref(origin), 'text-link') : null),
+    showSpoilers ? node('span', 'spoiler-status', '剧透模式') : null, spoilerControl(hasSpoilers));
+}
 
-  const article = node('div', 'prose reference-body');
-  const recordLinks = [];
-  if (dossier && records.length) {
-    article.classList.add('dossier-records');
-    for (const { after, markdown: source } of records) {
-      const chapter = chapters.get(after);
-      const label = chapter ? chapterReference(chapter) : after === 'opening' ? '开篇资料' : '剧透资料';
-      const record = node('section', 'dossier-record', node('p', 'dossier-record-source', label), renderBody(source));
-      record.dataset.section = after;
-      article.append(record);
-      recordLinks.push(link(label, entryHref(entry.collection, entry.id, after, from)));
+function referenceIndex(title, links) {
+  if (!links.length) return null;
+  const index = node('nav', 'reference-index', node('h2', '', title), links);
+  index.setAttribute('aria-label', title);
+  return index;
+}
+
+function archiveBody(records, terms, catalog) {
+  const body = node('div', 'prose archive-body');
+  for (const { after, markdown } of records) {
+    const section = node('section', 'archive-record');
+    if (after) section.dataset.section = after;
+    const content = renderMarkdown(markdown, terms, (href) => resolveRoute(catalog, href));
+    let target = section;
+    for (const element of [...content.children]) {
+      if (element.matches('h2')) {
+        target = section;
+        if (element.textContent.startsWith('附录｜')) {
+          target = node('div', 'archive-appendix-body');
+          const appendix = node('details', 'archive-appendix', node('summary', '', element.textContent), target);
+          appendix.dataset.section = element.dataset.section;
+          section.append(appendix);
+          continue;
+        }
+      }
+      if (element.matches('p') && element.firstChild?.nodeName === 'STRONG' && element.firstChild.textContent === '出处') {
+        element.classList.add('archive-source');
+      }
+      target.append(element);
     }
-  } else {
-    if (markdown) article.append(renderBody(markdown));
-    else if (!dossier) article.append(node('p', '', entry.summary));
-    if (!dossier) article.append(...illustrations.map(renderIllustration));
+    body.append(section);
   }
-  if (article.childNodes.length) page.append(article);
+  return body;
+}
 
-  const headings = [...article.querySelectorAll('.prose :is(h2, h3, h4, h5, h6)[data-section]')];
-  const indexTitle = recordLinks.length > 1 ? '历次记录' : '本页内容';
-  const indexLinks = recordLinks.length > 1 ? recordLinks : headings.map((heading) =>
-    link(heading.dataset.section, entryHref(entry.collection, entry.id, heading.dataset.section, from)));
-  const contents = indexLinks.length ? node('nav', 'reference-index', node('h2', '', indexTitle), indexLinks) : null;
-  const neighbours = isArchive ? related.map((id) => catalog.archives.find((other) => other.id === id)).filter(Boolean)
-    : catalog.settings.filter((other) => other.id !== entry.id).slice(0, 6);
-  const links = neighbours.length ? node('nav', 'reference-index', node('h2', '', isArchive ? '关联档案' : '其他设定'),
-    neighbours.map((other) => link(other.title, entryHref(other.collection, other.id, '', from)))) : null;
-  contents?.setAttribute('aria-label', indexTitle);
-  links?.setAttribute('aria-label', isArchive ? '关联档案' : '其他设定');
-  const origin = chapters.get(from);
-  return node('div', dossier ? 'frame page-view reference-view dossier-view' : 'frame page-view reference-view',
-    node('div', 'reference-toolbar',
-      node('div', 'reference-crumbs', link(isArchive ? '返回档案室' : '返回设定集', entryHref(entry.collection, '', '', from), 'text-link'),
-        origin ? link(`回到${origin.label}`, chapterHref(origin), 'text-link') : null),
-      showSpoilers ? node('span', 'spoiler-status', '剧透模式') : null, spoilerControl(hasSpoilers)),
+function archiveEntryPage(entry, { markdown, hasSpoilers, illustrations = [], facts = [], records = [], related = [] }, catalog, terms) {
+  const from = archiveOrigin();
+  const category = archiveCategories.get(entry.category);
+  const title = node('header', 'archive-entry-heading',
+    node('p', 'archive-classification', category, entry.code ? node('code', 'archive-code', entry.code) : null),
+    node('h1', '', entry.title));
+  const fields = facts.length ? node('dl', 'archive-facts', facts.map(({ label, value }) =>
+    node('div', label === '已见风险' ? 'archive-risk' : '', node('dt', '', label), node('dd', '', value)))) : null;
+  const images = illustrations.map((drawing) => renderIllustration({ ...drawing,
+    caption: drawing.caption.replace(/^第\d+章插图\s*·\s*/, '现场示意 · '),
+  }));
+  const evidence = images.length ? node('div', 'archive-evidence', images[0],
+    images.length > 1 ? node('details', 'archive-appendix', node('summary', '', '其余配图'),
+      node('div', 'archive-appendix-body', images.slice(1))) : null) : null;
+  const overview = fields || evidence ? node('div', fields && evidence ? 'archive-overview with-evidence' : 'archive-overview', fields, evidence) : null;
+  const body = archiveBody(records.length ? records : [{ markdown: markdown || entry.summary }], termIndex(terms, entry.id, from), catalog);
+  const contents = referenceIndex('本页目录', [...body.querySelectorAll('h2[data-section], details[data-section]')].map(({ dataset: { section } }) =>
+    link(section, entryHref('archives', entry.id, section, from))));
+  const links = referenceIndex('关联档案', related.map((id) => catalog.archives.find((other) => other.id === id)).filter(Boolean)
+    .map((other) => link(other.title, entryHref('archives', other.id, '', from))));
+  const navigation = contents || links ? node('aside', 'archive-sidebar archive-entry-sidebar', contents, links) : null;
+  return node('div', 'frame page-view archive-view archive-entry-view', referenceToolbar(entry, catalog, hasSpoilers),
+    node('div', navigation ? 'archive-layout archive-entry-layout' : 'archive-entry-layout',
+      node('article', 'archive-sheet archive-entry', title, overview, body), navigation));
+}
+
+function settingEntryPage(entry, { markdown, hasSpoilers, illustrations = [] }, catalog, terms) {
+  const from = archiveOrigin();
+  const title = node('header', 'reference-heading', node('p', 'eyebrow', archiveCategories.get(entry.category)), node('h1', '', entry.title));
+  const source = renderMarkdown(markdown || entry.summary, termIndex(terms, entry.id, from), (href) => resolveRoute(catalog, href));
+  const body = node('div', 'prose reference-body', source, illustrations.map(renderIllustration));
+  const page = node('article', 'reference-article', title, body);
+  const contents = referenceIndex('本页内容', [...body.querySelectorAll('[data-section]')].map(({ dataset: { section } }) =>
+    link(section, entryHref('settings', entry.id, section, from))));
+  const links = referenceIndex('其他设定', catalog.settings.filter((other) => other.id !== entry.id).slice(0, 6)
+    .map((other) => link(other.title, entryHref('settings', other.id, '', from))));
+  return node('div', 'frame page-view reference-view', referenceToolbar(entry, catalog, hasSpoilers),
     node('div', contents || links ? 'reference-layout' : 'reference-layout reference-layout-single', page,
       contents || links ? node('aside', 'reference-aside', contents, links) : null));
 }
@@ -362,7 +384,10 @@ function requestedDetail(catalog, target, search) {
 
 function jumpToSection() {
   if (!route.section) return;
-  [...main.querySelectorAll('[data-section]')].find((heading) => heading.dataset.section === route.section)?.scrollIntoView();
+  const target = [...main.querySelectorAll('[data-section]')].find((heading) => heading.dataset.section === route.section);
+  const appendix = target?.closest('details');
+  if (appendix) appendix.open = true;
+  target?.scrollIntoView();
 }
 
 function render({ navigation = false, revealSection = false } = {}) {
@@ -372,6 +397,8 @@ function render({ navigation = false, revealSection = false } = {}) {
   unmountReader?.();
   unmountReader = null;
   closePreviews();
+  const archive = document.body.classList.toggle('archive-mode', route.view === 'archives');
+  document.querySelector('.site-footer-context').textContent = archive ? '档案室' : '小说阅读站';
   for (const navLink of document.querySelectorAll('.site-nav a')) {
     if (navLink.dataset.view === route.view) navLink.setAttribute('aria-current', 'page');
     else navLink.removeAttribute('aria-current');
@@ -379,7 +406,8 @@ function render({ navigation = false, revealSection = false } = {}) {
 
   const search = archiveSearch(catalogCache?.data.chapters ?? []);
   const catalog = catalogCache?.url === `/api/catalog${search}` ? catalogCache.data : null;
-  termsByName = new Map(catalog?.terms.map((term) => [term.name, term]));
+  const terms = catalog?.terms.map((term) => archive && term.collection === 'settings' ? { ...term, collection: 'archives' } : term);
+  termsByName = new Map(terms?.map((term) => [term.name, term]));
   const requested = catalog && requestedDetail(catalog, route, search);
   const data = requested?.url === detailCache?.url ? detailCache?.data : undefined;
   let view;
@@ -401,7 +429,7 @@ function render({ navigation = false, revealSection = false } = {}) {
           if (route.view === 'read' && route.id === requested.record.id) refresh(true);
         }) });
     } else {
-      view = entryPage(requested.record, data, catalog);
+      view = (archive ? archiveEntryPage : settingEntryPage)(requested.record, data, catalog, terms);
     }
   } else if (route.id || route.view === 'missing') {
     const loading = requested && data === undefined;
