@@ -3,6 +3,8 @@ title: 盲域
 category: term
 summary: 陈宁和周棠与许慧说起槐渡站那晚的经历时，从她口中听到的称呼。
 after: v1-c008
+related:
+  - v1-c015 | community-bath-zone
 ---
 
 <!-- after: v1-c008 -->

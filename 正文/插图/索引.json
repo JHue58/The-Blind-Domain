@@ -193,5 +193,21 @@
     "chapter": "v1-c013",
     "anchor": "头顶那只灰白的方喇叭响了。陈宁等着它念下一个号，却先听见有人轻轻吸了口气。",
     "archives": { "hospital-call": "v1-c013" }
+  },
+  "v1-c015-bath-wall-water-v1": {
+    "status": "approved",
+    "file": "v1-c015-bath-wall-water-v1.png",
+    "sha256": "c19cc9fa08ee9a46e87742a7a829e6a0aff2567769fa0ece320f5eb4b922458d",
+    "width": 1536,
+    "height": 1024,
+    "alt": "社区浴室的池底完全露出，池水竖在远端的白瓷砖墙上，一只粉红塑料盆浮在竖直水面上。",
+    "caption": "第015章插图 · 浴室墙上的池水（据陈宁所见绘制）",
+    "chapter": "v1-c015",
+    "anchor": "一整池水竖在墙上。隔着水能看见后头弯弯的白砖缝，顶灯照在水面上，晃出一长条亮光。最底下那道水边就在池沿上方，鼓着一点，连一滴都没有落下来。",
+    "inline": true,
+    "archives": {
+      "community-bath-zone": "v1-c015",
+      "bath-wall-water": "v1-c015"
+    }
   }
 }
